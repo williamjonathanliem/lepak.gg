@@ -1,0 +1,45 @@
+import { isRouted, type AppManifest, type RoutedAppManifest } from './types';
+import { katabomb } from './katabomb/manifest';
+import { notes } from './notes/manifest';
+import { deadlines } from './deadlines/manifest';
+import { deviceDrop } from './device-drop/manifest';
+import { geoguess } from './geoguess/manifest';
+import { studyRoom } from './study-room/manifest';
+import { makanSplit } from './makan-split/manifest';
+import { freeTimeFinder } from './free-time-finder/manifest';
+import { aiNotes } from './ai-notes/manifest';
+import { notesToGame } from './notes-to-game/manifest';
+import { wordl } from './wordl/manifest';
+import { connections } from './connections/manifest';
+import { strands } from './strands/manifest';
+import { spellingBee } from './spelling-bee/manifest';
+import { miniCrossword } from './mini-crossword/manifest';
+import { letterBoxed } from './letter-boxed/manifest';
+import { tiles } from './tiles/manifest';
+import { pips } from './pips/manifest';
+import { sudoku } from './sudoku/manifest';
+
+// Adding an app: create src/apps/<id>/manifest.ts, then add it to this list.
+export const APPS: readonly AppManifest[] = [
+  katabomb,
+  notes,
+  deadlines,
+  deviceDrop,
+  geoguess,
+  studyRoom,
+  makanSplit,
+  freeTimeFinder,
+  aiNotes,
+  notesToGame,
+  wordl,
+  connections,
+  strands,
+  spellingBee,
+  miniCrossword,
+  letterBoxed,
+  tiles,
+  pips,
+  sudoku,
+];
+
+export const ROUTED_APPS: readonly RoutedAppManifest[] = APPS.filter(isRouted);

@@ -1,0 +1,126 @@
+# Lepak.gg
+
+A free, open source hub for students. Play party games, study together and use the small tools every class and group project needs. No ads, no signup: pick a nickname and go.
+
+"Lepak" is Malaysian slang for hanging out.
+
+- **Live:** https://lepak-gg.vercel.app (not deployed yet)
+- **License:** [MIT](LICENSE)
+- **Repo:** https://github.com/williamjonathanliem/lepak.gg
+
+## Run it locally
+
+You need [Node.js](https://nodejs.org) 20 or newer. pnpm comes with Node through corepack.
+
+```bash
+corepack enable pnpm   # once per machine
+pnpm install
+pnpm dev               # http://localhost:5173
+```
+
+| Command           | What it does                    |
+| ----------------- | ------------------------------- |
+| `pnpm dev`        | Dev server with hot reload      |
+| `pnpm build`      | Type-check and build to `dist/` |
+| `pnpm preview`    | Serve the built site            |
+| `pnpm test`       | Run the Vitest tests once       |
+| `pnpm test:watch` | Re-run tests on save            |
+| `pnpm lint`       | ESLint                          |
+| `pnpm format`     | Prettier                        |
+
+## Stack
+
+Vite + React + TypeScript (strict), Tailwind CSS v4, React Router, Zod, Vitest. The site is a static app; the services below are all on free tiers.
+
+## Services
+
+Players never make an account. Each browser gets an invisible guest sign-in (Firebase anonymous auth), and every service checks that guest id.
+
+| Service | What it does here | Status |
+| --- | --- | --- |
+| **Firebase** Realtime Database + Auth | Guest sign-in, live game rooms (KataBomb), chat, "Want this" votes | Live |
+| **Supabase** Postgres + Storage | Lepak Pages: notes, PDFs, HTML sites, and their files | Planned |
+| **Vercel** | Hosts the site; later a small server function for AI Notes | Planned |
+| **GitHub Actions** | Nightly clean-up of stale data | Planned |
+
+### Firebase setup
+
+1. Copy `.env.example` to `.env.local` and fill in the web config from Firebase console > Project settings > Your apps.
+2. Firebase console > Realtime Database > **Rules**: paste all of [`database.rules.json`](database.rules.json) and click **Publish**. Do this again every time that file changes.
+3. Restart `pnpm dev` after changing `.env.local`.
+
+Without `.env.local`, KataBomb still runs in "this device only" mode (tabs on one machine), which is handy for development.
+
+### What is stored, and for how long
+
+| Data | Where | Kept |
+| --- | --- | --- |
+| Nickname, guest id, game stats, daily puzzle progress | Your browser (`localStorage`) | Until you clear site data |
+| Game rooms, chat | Firebase | Deleted 24 hours after the room was last used |
+| Votes | Firebase | Until removed |
+| Pages and uploaded files | Supabase | Deleted after 90 days without a visit or edit |
+
+Pages are **unlisted** by default: only people with the link can open them.
+
+### HTML hosting (invite only)
+
+Lepak Pages can host plain HTML sites, but only for people who enter the invite code. Uploaded HTML is shown inside a locked-down frame on a separate origin, so it can't read anyone's sign-in or Lepak data. Ask the project owner for a code. The code itself lives only in the database, never in this repo.
+
+### Secrets
+
+Anything in `VITE_*` variables ships to every browser, so only public config goes there. Real secrets (Supabase service key, Firebase admin key, Gemini key, the HTML invite code) live only in Vercel / GitHub Actions / Supabase settings.
+
+## Project layout
+
+```
+src/
+  app/          router
+  pages/        Landing, Hub, NotFound (landing/ holds the landing sections)
+  apps/         one folder per hub app + registry.ts
+  components/   shared brutalist UI: Button, Input, Sticker, Marquee, Typewriter, SectionLabel, IndexCard
+  copy/         UI text, kept out of components so it can be translated later
+  lib/          identity (nickname + playerId), room codes, typewriter logic, site constants
+  styles/       Tailwind entry + design tokens
+public/words/   dictionaries (for WordBomb)
+```
+
+## Add an app
+
+Every app is one folder plus one line in the registry.
+
+1. Create `src/apps/<your-app>/manifest.ts`:
+
+   ```ts
+   import type { AppManifest } from '../types';
+
+   export const yourApp: AppManifest = {
+     id: 'your-app',
+     number: '009',
+     name: 'Your App',
+     tagline: 'One line about it.',
+     category: 'tools',
+     accent: '#4fd1e8', // the app's one colour; black text must stay readable on it
+     status: 'planned', // shows as "coming soon", no route yet
+     multiplayer: false,
+   };
+   ```
+
+2. Add `yourApp` to the `APPS` list in `src/apps/registry.ts`.
+
+That's it: the card shows up in The Index and the marquee.
+
+When the app is ready to open, switch it to `status: 'beta'` (or `'live'`) and add a route and a lazy loader:
+
+```ts
+  status: 'beta',
+  route: '/your-app',
+  load: () => import('./index'), // index.tsx default-exports your app component
+```
+
+The router picks it up from the registry automatically. Keep rules in plain functions under `logic/` with tests, and keep networking under `net/`.
+
+## Design
+
+Brutalist black and white. Tokens live in `src/styles/index.css` (`ink`, `paper`, `mute`, `shadow-hard`, `px-gutter`...). Use those instead of raw hex values. Borders are 3px, corners are square, and shadows are hard offsets. Every screen must work at 360px wide.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to help, and [CLAUDE.md](CLAUDE.md) for the full project brief.

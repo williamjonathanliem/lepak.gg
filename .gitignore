@@ -1,0 +1,11 @@
+node_modules
+dist
+coverage
+*.local
+.env*
+!.env.example
+.DS_Store
+.vercel
+
+# Private notes (accounts, owners). Never commit.
+/private/

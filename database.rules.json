@@ -1,0 +1,61 @@
+{
+  "rules": {
+    "rooms": {
+      "katabomb": {
+        ".indexOn": [
+          "updatedAt"
+        ],
+        "$code": {
+          ".read": "auth != null",
+          ".validate": "$code.matches(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/)",
+          ".write": "auth != null && !newData.exists() && data.child('updatedAt').val() < now - 86400000",
+          "state": {
+            ".write": "auth != null && newData.exists() && newData.child('hostId').val() === auth.uid && (!data.exists() || data.child('hostId').val() === auth.uid || (!data.parent().child('presence').child(data.child('hostId').val()).exists() && data.parent().child('presence').child(auth.uid).exists()))",
+            ".validate": "newData.hasChildren(['phase', 'hostId', 'settings', 'seq'])"
+          },
+          "updatedAt": {
+            ".write": "auth != null && data.parent().child('state/hostId').val() === auth.uid || (auth != null && !data.parent().child('state').exists())",
+            ".validate": "newData.val() === now"
+          },
+          "intents": {
+            "$id": {
+              ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid) || (!newData.exists() && root.child('rooms/katabomb').child($code).child('state/hostId').val() === auth.uid))",
+              ".validate": "newData.hasChildren(['from', 'data', 'at']) && newData.child('at').val() === now"
+            }
+          },
+          "chat": {
+            ".indexOn": [
+              "at"
+            ],
+            "$id": {
+              ".write": "auth != null && !data.exists() && newData.child('from').val() === auth.uid",
+              ".validate": "newData.hasChildren(['from', 'nick', 'text', 'at']) && newData.child('text').isString() && newData.child('text').val().length >= 1 && newData.child('text').val().length <= 200 && newData.child('nick').isString() && newData.child('nick').val().length <= 16 && newData.child('at').val() === now"
+            }
+          },
+          "typing": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isString() && newData.val().length <= 40"
+            }
+          },
+          "presence": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.isBoolean()"
+            }
+          }
+        }
+      }
+    },
+    "votes": {
+      ".read": "auth != null",
+      "$appId": {
+        ".validate": "$appId.matches(/^[a-z0-9-]{2,30}$/)",
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.isBoolean() && newData.val() === true"
+        }
+      }
+    }
+  }
+}

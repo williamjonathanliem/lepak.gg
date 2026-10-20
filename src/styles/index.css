@@ -1,0 +1,422 @@
+@import 'tailwindcss';
+
+/* Brutalist B&W design tokens. Use these, not raw hex values, in components. */
+@theme {
+  --font-sans: 'Archivo', system-ui, sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, monospace;
+  --font-hand: 'Caveat', 'Comic Sans MS', cursive; /* doodle notes only */
+
+  --color-ink: #000000;
+  --color-paper: #f9fafb; /* off-white: easier on the eyes than pure #fff */
+  --color-mute: #555555; /* secondary text on white */
+  --color-mute-dark: #bdbdbd; /* secondary text on black */
+  --color-faint: #e5e5e5; /* faint lines */
+  --color-soft: #f2f2f2; /* input prefix fill */
+  --color-shadow-dark: #6b6b6b; /* hard shadow on black backgrounds */
+  --color-hot: #ff4a1c; /* games only: fuse spark, hearts, boom. Use sparingly. */
+  --color-night: #0e0d0c; /* game screens: a warm off-black, softer than pure #000 */
+
+  --animate-spark: spark 0.18s steps(2) infinite;
+  --animate-burst: burst 0.8s ease-out forwards;
+  --animate-wobble: wobble 0.25s ease-in-out infinite;
+  --animate-float-up: float-up 0.9s ease-out forwards;
+  --animate-flip: flip 0.45s ease-in-out both;
+  --animate-ants: ants 0.6s linear infinite;
+  --animate-bounce-y: bounce-y 0.6s ease-in-out infinite;
+  --animate-check-in: check-in 0.3s ease-out both;
+
+  /* "marching ants" dashed border, drawn with background gradients */
+  @keyframes ants {
+    to {
+      background-position:
+        16px 0,
+        -16px 100%,
+        0 -16px,
+        100% 16px;
+    }
+  }
+  @keyframes bounce-y {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -8px;
+    }
+  }
+  @keyframes check-in {
+    from {
+      opacity: 0;
+      translate: -8px 0;
+    }
+    to {
+      opacity: 1;
+      translate: 0 0;
+    }
+  }
+
+  @keyframes flip {
+    0% {
+      rotate: x 90deg;
+    }
+    100% {
+      rotate: x 0deg;
+    }
+  }
+  --animate-confetti: confetti var(--fall, 2.6s) linear var(--delay, 0s) forwards;
+
+  @keyframes float-up {
+    0% {
+      translate: 0 0;
+      opacity: 0;
+    }
+    15% {
+      opacity: 1;
+    }
+    100% {
+      translate: 0 -40px;
+      opacity: 0;
+    }
+  }
+  @keyframes confetti {
+    0% {
+      translate: 0 -10vh;
+      rotate: 0deg;
+      opacity: 1;
+    }
+    100% {
+      translate: var(--drift, 0px) 110vh;
+      rotate: 720deg;
+      opacity: 1;
+    }
+  }
+
+  @keyframes spark {
+    0% {
+      scale: 1;
+      rotate: 0deg;
+    }
+    100% {
+      scale: 1.35;
+      rotate: 25deg;
+    }
+  }
+  @keyframes burst {
+    0% {
+      scale: 0.3;
+      opacity: 1;
+    }
+    60% {
+      scale: 1.15;
+      opacity: 1;
+    }
+    100% {
+      scale: 1.3;
+      opacity: 0;
+    }
+  }
+  @keyframes wobble {
+    0%,
+    100% {
+      rotate: -4deg;
+    }
+    50% {
+      rotate: 4deg;
+    }
+  }
+
+  --spacing-gutter: clamp(16px, 3vw, 32px);
+  --shadow-hard: 6px 6px 0 var(--color-ink);
+  --shadow-hard-sm: 4px 4px 0 var(--color-ink);
+  --radius: 0;
+
+  --animate-blink: blink 1s steps(1) infinite;
+  --animate-marquee: marquee 28s linear infinite;
+
+  @keyframes blink {
+    0%,
+    49% {
+      opacity: 1;
+    }
+    50%,
+    100% {
+      opacity: 0;
+    }
+  }
+  --animate-bob: bob 3.2s ease-in-out infinite;
+  --animate-wiggle: wiggle 2.4s ease-in-out infinite;
+  --animate-shake: shake 0.45s ease-in-out;
+  --animate-pulse-fast: pulse-fast 0.5s ease-in-out infinite;
+  --animate-pop: pop 0.35s ease-out;
+
+  @keyframes shake {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    20% {
+      translate: -10px 4px;
+    }
+    40% {
+      translate: 9px -6px;
+    }
+    60% {
+      translate: -6px 6px;
+    }
+    80% {
+      translate: 4px -3px;
+    }
+  }
+  @keyframes pulse-fast {
+    0%,
+    100% {
+      scale: 1;
+    }
+    50% {
+      scale: 1.06;
+    }
+  }
+  @keyframes pop {
+    0% {
+      scale: 0.6;
+      opacity: 0;
+    }
+    70% {
+      scale: 1.1;
+    }
+    100% {
+      scale: 1;
+      opacity: 1;
+    }
+  }
+
+  @keyframes bob {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    50% {
+      translate: 0 -5px;
+    }
+  }
+  @keyframes wiggle {
+    0%,
+    100% {
+      rotate: -6deg;
+    }
+    50% {
+      rotate: 6deg;
+    }
+  }
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    margin: 0;
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.5;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  a {
+    color: inherit;
+  }
+  input::placeholder {
+    color: #6b6b6b;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 3px;
+  }
+  .on-dark :focus-visible {
+    outline-color: var(--color-paper);
+  }
+}
+
+/* Huge uppercase Archivo headings */
+@utility heading-xl {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: clamp(44px, 7vw, 104px);
+  line-height: 0.9;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+@utility heading-lg {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: clamp(40px, 6vw, 84px);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  text-transform: uppercase;
+}
+
+/* Hard-shadow button that presses in on hover and active */
+@utility push {
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+  &:hover {
+    transform: translate(3px, 3px);
+    box-shadow: 3px 3px 0 var(--push-shadow, var(--color-ink));
+  }
+  &:active {
+    transform: translate(6px, 6px);
+    box-shadow: 0 0 0 var(--push-shadow, var(--color-ink));
+  }
+}
+
+/* Grid cell that fills on hover and keyboard focus: black by default, or the app's
+   accent colour when the card sets --accent (then text stays black). */
+@utility cell {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  &:hover,
+  &:focus-visible,
+  &:focus-within {
+    background-color: var(--accent, var(--color-ink));
+    color: var(--accent-text, var(--color-paper));
+  }
+  &:focus-visible {
+    outline: 3px solid var(--accent-text, var(--color-paper));
+    outline-offset: -10px;
+  }
+  &:hover .cell-dim,
+  &:focus-visible .cell-dim,
+  &:focus-within .cell-dim {
+    color: var(--accent-dim, var(--color-mute-dark));
+  }
+}
+
+/* Reading styles for published Lepak Pages notes (rendered markdown). */
+.lp-prose {
+  font-size: 18px;
+  line-height: 1.7;
+  max-width: 70ch;
+  overflow-wrap: anywhere;
+}
+.lp-prose > * + * {
+  margin-top: 1em;
+}
+.lp-prose h1,
+.lp-prose h2,
+.lp-prose h3 {
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-top: 1.6em;
+}
+.lp-prose h1 {
+  font-size: 2.2em;
+  text-transform: uppercase;
+}
+.lp-prose h2 {
+  font-size: 1.6em;
+  border-bottom: 3px solid var(--color-ink);
+  padding-bottom: 0.2em;
+}
+.lp-prose h3 {
+  font-size: 1.25em;
+}
+.lp-prose ul,
+.lp-prose ol {
+  padding-left: 1.4em;
+}
+.lp-prose ul {
+  list-style: square;
+}
+.lp-prose ol {
+  list-style: decimal;
+}
+.lp-prose li + li {
+  margin-top: 0.3em;
+}
+.lp-prose a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.lp-prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--color-soft);
+  padding: 0.1em 0.35em;
+}
+.lp-prose pre {
+  background: var(--color-ink);
+  color: var(--color-paper);
+  padding: 1em;
+  overflow-x: auto;
+}
+.lp-prose pre code {
+  background: none;
+  padding: 0;
+}
+.lp-prose blockquote {
+  border-left: 6px solid var(--color-ink);
+  padding-left: 1em;
+  color: var(--color-mute);
+}
+.lp-prose table {
+  border-collapse: collapse;
+  width: 100%;
+  display: block;
+  overflow-x: auto;
+}
+.lp-prose th,
+.lp-prose td {
+  border: 2px solid var(--color-ink);
+  padding: 0.4em 0.6em;
+  text-align: left;
+}
+.lp-prose img {
+  max-width: 100%;
+  height: auto;
+  border: 3px solid var(--color-ink);
+}
+.lp-prose hr {
+  border: 0;
+  border-top: 3px solid var(--color-ink);
+}
+
+/* Doodles draw themselves in once. Without animation they simply show finished. */
+@keyframes doodle-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.doodle path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  animation: doodle-draw 0.9s ease-out both;
+  animation-delay: var(--draw-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

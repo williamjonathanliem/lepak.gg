@@ -388,6 +388,23 @@
   height: auto;
   border: 3px solid var(--color-ink);
 }
+.lp-prose .lp-diagram {
+  margin: 1.5em 0;
+  padding: 1em;
+  border: 3px solid var(--color-ink);
+  background: var(--color-paper);
+  overflow-x: auto;
+  text-align: center;
+}
+.lp-prose .lp-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+.lp-prose .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25em 0;
+}
 .lp-prose hr {
   border: 0;
   border-top: 3px solid var(--color-ink);

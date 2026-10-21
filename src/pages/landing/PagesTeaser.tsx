@@ -103,7 +103,7 @@ export function PagesTeaser() {
           <input
             ref={inputRef}
             type="file"
-            accept=".md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip"
+            accept=".md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip,.png,.jpg,.jpeg,.webp,.gif,.bmp"
             className="sr-only"
             tabIndex={-1}
             onChange={(e) => {

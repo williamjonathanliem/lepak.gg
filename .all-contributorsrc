@@ -1,0 +1,11 @@
+{
+  "projectName": "lepak.gg",
+  "projectOwner": "williamjonathanliem",
+  "repoType": "github",
+  "repoHost": "https://github.com",
+  "files": ["README.md"],
+  "imageSize": 80,
+  "commit": false,
+  "contributorsPerLine": 7,
+  "contributors": []
+}

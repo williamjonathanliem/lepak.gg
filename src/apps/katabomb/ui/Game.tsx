@@ -40,6 +40,8 @@ export function Game({ room }: { room: Room }) {
   const turn = state.turn;
   const now = useNow(room.now, true);
   const [sideOpen, setSideOpen] = useState(false);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const compactView = useIsShort(tableRef, 300);
 
   const me = state.players.find((p) => p.id === room.selfId);
   const myTurn = !!turn && turn.playerId === room.selfId;
@@ -105,82 +107,97 @@ export function Game({ room }: { room: Room }) {
           </div>
         </div>
 
-        {/* table */}
-        <div
-          key={boom ? state.seq : 'calm'}
-          className={`relative min-h-0 flex-1 [container-type:size] ${boom ? 'animate-shake' : ''}`}
-        >
-          <div className="absolute top-1/2 left-1/2 size-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2">
-            {/* arrow from the bomb to whoever holds it */}
+        {/* table: the full circle, or a compact bar when there's little height (phone keyboard open) */}
+        <div ref={tableRef} className="relative min-h-0 flex-1">
+          {compactView ? (
+            <CompactTable
+              room={room}
+              fraction={fraction}
+              danger={danger}
+              secondsLeft={secondsLeft}
+              shakeKey={boom ? state.seq : null}
+            />
+          ) : (
             <div
-              aria-hidden="true"
-              className="absolute top-1/2 left-1/2 h-0 w-0 transition-transform duration-300 ease-out"
-              style={{ transform: `rotate(${pointerDeg}deg)` }}
+              key={boom ? state.seq : 'calm'}
+              className={`absolute inset-0 [container-type:size] ${boom ? 'animate-shake' : ''}`}
             >
-              <div className="absolute top-0 left-[14cqmin] flex -translate-y-1/2 items-center drop-shadow-[0_2px_0_rgb(0_0_0/0.4)]">
-                <div className="h-[clamp(5px,1.4cqmin,10px)] w-[10cqmin] rounded-l-full bg-hot" />
-                <div className="h-0 w-0 border-y-[clamp(9px,2.6cqmin,18px)] border-l-[clamp(14px,4cqmin,28px)] border-y-transparent border-l-hot" />
-              </div>
-            </div>
-
-            {/* bomb with the prompt on it */}
-            <div className="absolute top-1/2 left-1/2 w-[30%] -translate-x-[47%] -translate-y-[60%]">
-              <Bomb fraction={fraction} danger={danger && !!turn} />
-              <div className="absolute top-[60%] left-[47%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-                <span
-                  key={turn?.prompt}
-                  className="animate-pop font-sans text-[clamp(24px,8.5cqmin,72px)] leading-none font-black tracking-wide text-paper uppercase"
-                >
-                  <span className="sr-only">Letters: </span>
-                  {turn?.prompt}
-                </span>
-                <span
+              <div className="absolute top-1/2 left-1/2 size-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2">
+                {/* arrow from the bomb to whoever holds it */}
+                <div
                   aria-hidden="true"
-                  className={`mt-[0.6cqmin] font-mono text-[clamp(11px,2.8cqmin,20px)] font-bold ${danger ? 'text-hot' : 'text-paper/60'}`}
+                  className="absolute top-1/2 left-1/2 h-0 w-0 transition-transform duration-300 ease-out"
+                  style={{ transform: `rotate(${pointerDeg}deg)` }}
                 >
-                  {secondsLeft}s
-                </span>
+                  <div className="absolute top-0 left-[14cqmin] flex -translate-y-1/2 items-center drop-shadow-[0_2px_0_rgb(0_0_0/0.4)]">
+                    <div className="h-[clamp(5px,1.4cqmin,10px)] w-[10cqmin] rounded-l-full bg-hot" />
+                    <div className="h-0 w-0 border-y-[clamp(9px,2.6cqmin,18px)] border-l-[clamp(14px,4cqmin,28px)] border-y-transparent border-l-hot" />
+                  </div>
+                </div>
+
+                {/* bomb with the prompt on it */}
+                <div className="absolute top-1/2 left-1/2 w-[30%] -translate-x-[47%] -translate-y-[60%]">
+                  <Bomb fraction={fraction} danger={danger && !!turn} />
+                  <div className="absolute top-[60%] left-[47%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
+                    <span
+                      key={turn?.prompt}
+                      className="animate-pop font-sans text-[clamp(24px,8.5cqmin,72px)] leading-none font-black tracking-wide text-paper uppercase"
+                    >
+                      <span className="sr-only">Letters: </span>
+                      {turn?.prompt}
+                    </span>
+                    <span
+                      aria-hidden="true"
+                      className={`mt-[0.6cqmin] font-mono text-[clamp(11px,2.8cqmin,20px)] font-bold ${danger ? 'text-hot' : 'text-paper/60'}`}
+                    >
+                      {secondsLeft}s
+                    </span>
+                  </div>
+                </div>
+
+                {/* boom! */}
+                {boom && (
+                  <div
+                    key={state.seq}
+                    aria-hidden="true"
+                    className="pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
+                  >
+                    <div className="flex size-[34cqmin] animate-burst items-center justify-center bg-hot font-sans text-[8cqmin] font-black text-ink [clip-path:polygon(50%_0,61%_30%,95%_20%,72%_47%,100%_70%,66%_70%,62%_100%,45%_74%,15%_96%,24%_64%,0_45%,30%_38%,12%_8%,42%_25%)]">
+                      BOOM
+                    </div>
+                  </div>
+                )}
+
+                {/* seats */}
+                <ul className="m-0 list-none p-0">
+                  {seated.map((p, i) => {
+                    const a = angleFor(i);
+                    return (
+                      <li
+                        key={p.id}
+                        className="absolute w-[clamp(90px,24cqmin,190px)] -translate-x-1/2 -translate-y-1/2"
+                        style={{
+                          left: `${50 + 37 * Math.cos(a)}%`,
+                          top: `${50 + 36 * Math.sin(a)}%`,
+                        }}
+                      >
+                        <Seat
+                          player={p}
+                          maxLives={state.settings.lives}
+                          active={p.id === turn?.playerId}
+                          host={p.id === state.hostId}
+                          you={p.id === room.selfId}
+                          typing={room.typing[p.id] ?? ''}
+                          prompt={turn?.prompt ?? ''}
+                          room={room}
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             </div>
-
-            {/* boom! */}
-            {boom && (
-              <div
-                key={state.seq}
-                aria-hidden="true"
-                className="pointer-events-none absolute top-1/2 left-1/2 z-20 -translate-x-1/2 -translate-y-1/2"
-              >
-                <div className="flex size-[34cqmin] animate-burst items-center justify-center bg-hot font-sans text-[8cqmin] font-black text-ink [clip-path:polygon(50%_0,61%_30%,95%_20%,72%_47%,100%_70%,66%_70%,62%_100%,45%_74%,15%_96%,24%_64%,0_45%,30%_38%,12%_8%,42%_25%)]">
-                  BOOM
-                </div>
-              </div>
-            )}
-
-            {/* seats */}
-            <ul className="m-0 list-none p-0">
-              {seated.map((p, i) => {
-                const a = angleFor(i);
-                return (
-                  <li
-                    key={p.id}
-                    className="absolute w-[clamp(90px,24cqmin,190px)] -translate-x-1/2 -translate-y-1/2"
-                    style={{ left: `${50 + 37 * Math.cos(a)}%`, top: `${50 + 36 * Math.sin(a)}%` }}
-                  >
-                    <Seat
-                      player={p}
-                      maxLives={state.settings.lives}
-                      active={p.id === turn?.playerId}
-                      host={p.id === state.hostId}
-                      you={p.id === room.selfId}
-                      typing={room.typing[p.id] ?? ''}
-                      prompt={turn?.prompt ?? ''}
-                      room={room}
-                    />
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          )}
         </div>
 
         {/* screen reader status */}
@@ -479,5 +496,98 @@ function WordInput({ room, prompt }: { room: Room; prompt: string }) {
         {feedback ? `! ${feedback}` : ''}
       </p>
     </form>
+  );
+}
+
+// ---------- compact table (little height, e.g. phone keyboard open) ----------
+
+/** True while the element is shorter than `limit` px. Watches resizes, e.g. a keyboard opening. */
+function useIsShort(ref: React.RefObject<HTMLElement | null>, limit: number): boolean {
+  const [short, setShort] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      if (entry) setShort(entry.contentRect.height < limit);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [ref, limit]);
+  return short;
+}
+
+interface CompactTableProps {
+  room: Room;
+  fraction: number;
+  danger: boolean;
+  secondsLeft: number;
+  shakeKey: number | null;
+}
+
+/** One-bar version of the table: bomb + prompt, who's up and their typing, then everyone in a row. */
+function CompactTable({ room, fraction, danger, secondsLeft, shakeKey }: CompactTableProps) {
+  const state = room.state!;
+  const turn = state.turn;
+  const holder = state.players.find((p) => p.id === turn?.playerId);
+  const seated = state.players.filter((p) => p.playing);
+
+  return (
+    <div
+      key={shakeKey ?? 'calm'}
+      className={`absolute inset-0 flex flex-col justify-center gap-2 overflow-hidden px-4 ${shakeKey ? 'animate-shake' : ''}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="relative w-16 shrink-0">
+          <Bomb fraction={fraction} danger={danger && !!turn} />
+          <span className="absolute top-[60%] left-[47%] -translate-x-1/2 -translate-y-1/2 font-sans text-sm font-black text-paper uppercase">
+            <span className="sr-only">Letters: </span>
+            {turn?.prompt}
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="m-0 flex items-baseline gap-2 font-mono text-xs uppercase">
+            {holder && (
+              <b className="truncate" style={{ color: playerColor(holder) }}>
+                {holder.nickname}
+              </b>
+            )}
+            <span className={danger ? 'text-hot' : 'text-paper/60'}>{secondsLeft}s</span>
+          </p>
+          <p
+            aria-hidden="true"
+            className="m-0 truncate font-sans text-2xl leading-tight font-black tracking-wide uppercase"
+          >
+            {holder ? (
+              <Highlight text={room.typing[holder.id] ?? ''} prompt={turn?.prompt ?? ''} />
+            ) : (
+              ''
+            )}
+            {'​'}
+          </p>
+        </div>
+      </div>
+      <ul className="m-0 flex list-none gap-2 overflow-x-auto p-0 pb-1">
+        {seated.map((p) => {
+          const active = p.id === turn?.playerId;
+          return (
+            <li
+              key={p.id}
+              className={`flex shrink-0 flex-col items-center ${p.alive ? '' : 'opacity-35'}`}
+            >
+              <span
+                className={`flex size-9 items-center justify-center border-2 text-base font-black text-ink uppercase ${active ? 'border-paper shadow-[0_0_0_3px_var(--color-hot)]' : 'border-ink'}`}
+                style={{ background: playerColor(p) }}
+                aria-label={`${p.nickname}${active ? ', holding the bomb' : ''}, ${p.lives} lives`}
+              >
+                {p.alive ? (p.emoji ?? p.nickname.slice(0, 1)) : '✕'}
+              </span>
+              <span aria-hidden="true" className="mt-0.5 text-[10px] leading-none text-hot">
+                {'♥'.repeat(p.lives)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

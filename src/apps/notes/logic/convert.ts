@@ -10,19 +10,132 @@ import {
 } from './pages';
 import type { SiteFile } from '../net/pagesApi';
 
-/** Markdown to HTML that's safe to put on the page: scripts, handlers and iframes are stripped. */
+// Maths: $inline$ and $$display$$. The tokenizer turns them into empty placeholder spans that
+// survive sanitising; KaTeX fills them in afterwards. KaTeX escapes its input and runs with
+// trust: false, so formulas can't inject HTML.
+// $ then a non-space, escaped chars or anything but \ newline $, a non-space, then $ not followed
+// by a digit (so "$5 and $10" stays plain text).
+const INLINE_MATH = /^\$(?!\s)((?:\\.|[^\\\n$])+?)(?<!\s)\$(?!\d)/;
+const BLOCK_MATH = /^\$\$([\s\S]+?)\$\$/;
+
+function mathSpan(tex: string, display: boolean): string {
+  return `<span data-math="${encodeURIComponent(tex.trim())}" data-display="${display ? 1 : 0}"></span>`;
+}
+
+const mathExtension = {
+  extensions: [
+    {
+      name: 'mathBlock',
+      level: 'block' as const,
+      start: (src: string) => src.indexOf('$$'),
+      tokenizer(src: string) {
+        const m = BLOCK_MATH.exec(src);
+        return m ? { type: 'mathBlock', raw: m[0], text: m[1]! } : undefined;
+      },
+      renderer: (t: { text?: string }) => `<p>${mathSpan(t.text ?? '', true)}</p>`,
+    },
+    {
+      name: 'mathInline',
+      level: 'inline' as const,
+      start: (src: string) => src.indexOf('$'),
+      tokenizer(src: string) {
+        const m = BLOCK_MATH.exec(src) ?? INLINE_MATH.exec(src);
+        if (!m) return undefined;
+        return { type: 'mathInline', raw: m[0], text: m[1]!, display: m[0].startsWith('$$') };
+      },
+      renderer: (t: { text?: string; display?: boolean }) => mathSpan(t.text ?? '', !!t.display),
+    },
+  ],
+};
+
+/**
+ * Markdown to HTML that's safe to put on the page: scripts, handlers and iframes are stripped.
+ * Supports maths ($...$, $$...$$). Mermaid diagrams are drawn later by drawDiagrams().
+ */
 export async function renderMarkdown(md: string): Promise<string> {
-  const [{ marked }, { default: DOMPurify }] = await Promise.all([
+  const [{ Marked }, { default: DOMPurify }] = await Promise.all([
     import('marked'),
     import('dompurify'),
   ]);
-  const html = await marked.parse(md, { gfm: true, breaks: true });
+  const marked = new Marked({ gfm: true, breaks: true }, mathExtension);
+  const html = await marked.parse(md);
   const clean = DOMPurify.sanitize(html, {
     FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'button'],
     FORBID_ATTR: ['style'],
   });
+
+  const tpl = document.createElement('template');
+  tpl.innerHTML = clean;
   // Links open in a new tab and can't reach back into this page.
-  return clean.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer nofollow" ');
+  tpl.content.querySelectorAll('a').forEach((a) => {
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer nofollow';
+  });
+  const maths = tpl.content.querySelectorAll<HTMLElement>('[data-math]');
+  if (maths.length) {
+    const [{ default: katex }] = await Promise.all([
+      import('katex'),
+      import('katex/dist/katex.min.css'),
+    ]);
+    maths.forEach((el) => {
+      el.outerHTML = katex.renderToString(decodeURIComponent(el.dataset.math ?? ''), {
+        displayMode: el.dataset.display === '1',
+        throwOnError: false,
+        trust: false,
+        strict: 'ignore',
+      });
+    });
+  }
+  return tpl.innerHTML;
+}
+
+let diagramCount = 0;
+
+/**
+ * Draws ```mermaid code blocks inside `root` as diagrams. Mermaid runs in strict mode
+ * (no scripts, no clicks, HTML labels escaped). Loaded only when a note has a diagram.
+ */
+export async function drawDiagrams(root: HTMLElement): Promise<void> {
+  const blocks = root.querySelectorAll<HTMLElement>('code.language-mermaid');
+  if (!blocks.length) return;
+  const { default: mermaid } = await import('mermaid');
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'neutral' });
+  for (const code of blocks) {
+    const pre = code.closest('pre') ?? code;
+    try {
+      const { svg } = await mermaid.render(`lp-diagram-${++diagramCount}`, code.textContent ?? '');
+      const figure = document.createElement('figure');
+      figure.className = 'lp-diagram';
+      figure.innerHTML = svg;
+      pre.replaceWith(figure);
+    } catch {
+      // Leave the code block as is if the diagram has a mistake in it.
+    }
+  }
+}
+
+/**
+ * "Snap to text": reads the text in a photo (whiteboard, handwritten or printed notes)
+ * right here in the browser with Tesseract. The photo is never uploaded.
+ * The first run downloads the reader and English language data (a few MB, then cached).
+ */
+export async function imageToText(
+  file: File,
+  onProgress?: (percent: number) => void,
+): Promise<string> {
+  const { createWorker } = await import('tesseract.js');
+  const worker = await createWorker('eng', 1, {
+    logger: (m: { status: string; progress: number }) => {
+      if (m.status === 'recognizing text') onProgress?.(Math.round(m.progress * 100));
+    },
+  });
+  try {
+    const { data } = await worker.recognize(file);
+    // Tidy up: drop empty lines at the ends, collapse runs of blank lines.
+    return data.text.replace(/\n{3,}/g, '\n\n').trim();
+  } finally {
+    await worker.terminate();
+  }
 }
 
 /** .docx to markdown, keeping headings, lists, bold and links. */

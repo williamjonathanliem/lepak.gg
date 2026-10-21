@@ -17,6 +17,16 @@ describe('app registry', () => {
   });
 
   it('routes the playable apps', () => {
-    expect(ROUTED_APPS.map((a) => a.id)).toEqual(['katabomb', 'notes', 'wordl', 'connections']);
+    expect(ROUTED_APPS.map((a) => a.id)).toEqual([
+      'katabomb',
+      'notes',
+      'wordl',
+      'connections',
+      'whiteboard',
+      'trivia',
+      'cite',
+      'toolbox',
+      'bingo',
+    ]);
   });
 });

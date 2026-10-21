@@ -14,6 +14,7 @@ import {
   updatePage,
   type PageRecord,
 } from './net/pagesApi';
+import { Prose } from './ui/Prose';
 import { Shell } from './ui/Shell';
 
 // Published pages: /n/:slug (view) and /n/:slug/edit (edit, needs the owner's browser or the edit key).
@@ -125,7 +126,7 @@ function NoteView({ page }: { page: PageRecord }) {
         <p className="font-mono">{LP.loading}</p>
       ) : (
         // Sanitised by DOMPurify in renderMarkdown.
-        <article className="lp-prose" dangerouslySetInnerHTML={{ __html: html }} />
+        <Prose html={html} />
       )}
       <p className="mt-16 font-mono text-xs text-mute">
         <Link to="/pages">{LP.madeWith}</Link> · updated{' '}

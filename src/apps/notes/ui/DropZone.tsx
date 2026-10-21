@@ -18,6 +18,7 @@ const KIND_LABEL: Record<DropKind, string> = {
   pdf: 'PDF',
   html: 'HTML page',
   zip: 'Website (.zip)',
+  image: 'Photo',
   unsupported: 'Not supported',
 };
 
@@ -27,6 +28,7 @@ const PROTECTION: Record<DropKind, string> = {
   pdf: 'Opened in the browser’s own PDF viewer',
   html: 'Runs in a sealed frame, away from Lepak data',
   zip: 'Runs in a sealed frame, away from Lepak data',
+  image: 'Read on your device: the photo is never uploaded',
   unsupported: 'Not uploaded',
 };
 
@@ -56,9 +58,11 @@ interface DropZoneProps {
   extra?: React.ReactNode;
   /** A file handed over from elsewhere (the landing page), checked once on arrival. */
   initialFile?: File;
+  /** Progress line while a slow step runs, e.g. "Reading text 45%". */
+  status?: string | null;
 }
 
-export function DropZone({ onFile, picked, extra, initialFile }: DropZoneProps) {
+export function DropZone({ onFile, picked, extra, initialFile, status }: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [checks, setChecks] = useState<Check[]>([]);
@@ -161,7 +165,11 @@ export function DropZone({ onFile, picked, extra, initialFile }: DropZoneProps) 
         </span>
 
         <p className="m-0 text-xl font-black uppercase" aria-live="polite">
-          {over ? LP.dropNow : phase === 'checking' ? LP.checking : (picked ?? LP.dropTitle)}
+          {over
+            ? LP.dropNow
+            : phase === 'checking'
+              ? (status ?? LP.checking)
+              : (picked ?? LP.dropTitle)}
         </p>
 
         {phase !== 'idle' && phase !== 'over' && (
@@ -204,7 +212,7 @@ export function DropZone({ onFile, picked, extra, initialFile }: DropZoneProps) 
         <input
           ref={inputRef}
           type="file"
-          accept=".md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip"
+          accept=".md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip,.png,.jpg,.jpeg,.webp,.gif,.bmp"
           className="sr-only"
           tabIndex={-1}
           onChange={(e) => {

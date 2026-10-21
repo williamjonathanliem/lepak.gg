@@ -28,7 +28,7 @@ export function Home() {
     <NicknameGate>
       {(nickname) => (
         // Fits the screen: hero sized by screen height, panels fill the rest. No page scroll.
-        <main className="flex h-full min-h-0 flex-col">
+        <main className="flex min-h-full flex-col">
           {roomMode === 'local' && <LocalBanner />}
           <section className="relative shrink-0 border-b-3 border-ink px-gutter py-[clamp(12px,3vh,40px)]">
             <SectionLabel number="001" title="KataBomb" />
@@ -60,8 +60,8 @@ export function Home() {
             </details>
           </section>
 
-          <div className="grid min-h-0 flex-1 auto-rows-fr gap-[3px] bg-ink md:grid-cols-3">
-            <div className="relative flex min-h-0 flex-col justify-center gap-4 bg-paper px-gutter py-4">
+          <div className="grid flex-1 auto-rows-fr gap-[3px] bg-ink md:grid-cols-3">
+            <div className="relative flex flex-col justify-center gap-4 bg-paper px-gutter py-4">
               <h2 className="m-0 text-[clamp(22px,3vh,28px)] font-black uppercase">Host</h2>
               <Button onClick={create} className="h-16 self-start px-8 text-lg">
                 {KB.create}
@@ -73,7 +73,7 @@ export function Home() {
             <form
               noValidate
               onSubmit={join}
-              className="flex min-h-0 flex-col justify-center gap-2 bg-paper px-gutter py-4"
+              className="flex flex-col justify-center gap-2 bg-paper px-gutter py-4"
             >
               <h2 className="m-0 text-[clamp(22px,3vh,28px)] font-black uppercase">Join</h2>
               <label htmlFor="room-code" className="font-mono text-[13px] uppercase">
@@ -101,7 +101,7 @@ export function Home() {
               </div>
               <InputError id="room-code" error={error} />
             </form>
-            <div className="min-h-0 overflow-y-auto bg-ink px-gutter py-4 text-paper max-md:hidden">
+            <div className="bg-ink px-gutter py-4 text-paper max-md:hidden">
               <h2 className="m-0 text-[clamp(22px,3vh,28px)] font-black uppercase">How to play</h2>
               <ol className="mt-3 mb-0 flex list-none flex-col gap-2.5 p-0">
                 {KB.howTo.map((line, i) => (

@@ -61,6 +61,7 @@ describe('files', () => {
     expect(classifyFile('slides.pdf')).toBe('pdf');
     expect(classifyFile('site.zip')).toBe('zip');
     expect(classifyFile('index.html')).toBe('html');
+    expect(classifyFile('whiteboard.JPG')).toBe('image');
     expect(classifyFile('virus.exe')).toBe('unsupported');
   });
 

@@ -15,7 +15,10 @@ export const LP = {
   editText: 'Edit',
   docKeepsLayout: 'Word files keep their look: fonts, tables, pictures.',
   makeEditable: 'Turn it into an editable note instead',
-  dropHint: '.md, .docx, .pdf. HTML or .zip sites need an invite code.',
+  dropHint:
+    '.md, .docx, .pdf, or a photo of notes (we read the text). HTML or .zip sites need an invite code.',
+  readingPhoto: (pct: number) => `Reading text ${pct}%`,
+  noTextFound: 'Could not find any text in that photo. Try a sharper, brighter one.',
   dropTitle: 'Drop file here',
   orBrowse: 'or tap to choose',
   pickAnother: 'Pick another file',

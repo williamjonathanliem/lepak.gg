@@ -94,7 +94,7 @@ export function mimeFor(name: string): string | null {
   return MIME[extOf(name)] ?? null;
 }
 
-export type DropKind = 'markdown' | 'docx' | 'pdf' | 'html' | 'zip' | 'unsupported';
+export type DropKind = 'markdown' | 'docx' | 'pdf' | 'html' | 'zip' | 'image' | 'unsupported';
 
 export function classifyFile(name: string): DropKind {
   const ext = extOf(name);
@@ -103,6 +103,7 @@ export function classifyFile(name: string): DropKind {
   if (ext === 'pdf') return 'pdf';
   if (ext === 'html' || ext === 'htm') return 'html';
   if (ext === 'zip') return 'zip';
+  if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp'].includes(ext)) return 'image';
   return 'unsupported';
 }
 

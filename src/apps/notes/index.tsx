@@ -3,7 +3,13 @@ import { Link, Route, Routes, useLocation } from 'react-router';
 import { supabaseEnabled } from '../../lib/supabase';
 import { cryptoRandomInt } from '../../lib/roomCode';
 import { LP, SLUG_ERRORS } from './copy';
-import { docxToMarkdown, readSite, renderMarkdown, type SiteBundle } from './logic/convert';
+import {
+  docxToMarkdown,
+  imageToText,
+  readSite,
+  renderMarkdown,
+  type SiteBundle,
+} from './logic/convert';
 import {
   MAX_FILE_BYTES,
   MAX_NOTE_CHARS,
@@ -24,6 +30,7 @@ import {
   uploadFiles,
 } from './net/pagesApi';
 import { DropZone } from './ui/DropZone';
+import { Prose } from './ui/Prose';
 import { Shell } from './ui/Shell';
 
 // Lepak Pages: /pages to publish. Published pages live at /n/:slug (see view.tsx).
@@ -85,6 +92,15 @@ function Publish() {
     try {
       if (type === 'markdown') {
         setBody((await file.text()).slice(0, MAX_NOTE_CHARS));
+        setDraft({ kind: 'note' });
+        setTitle((t) => t || name);
+        setMode('write');
+      } else if (type === 'image') {
+        // Snap to text: read the photo on this device, then edit the result as a note.
+        setBusy(LP.readingPhoto(0));
+        const text = await imageToText(file, (pct) => setBusy(LP.readingPhoto(pct)));
+        if (!text) return LP.noTextFound;
+        setBody(text.slice(0, MAX_NOTE_CHARS));
         setDraft({ kind: 'note' });
         setTitle((t) => t || name);
         setMode('write');
@@ -250,6 +266,7 @@ function Publish() {
             <DropZone
               onFile={onFile}
               initialFile={handoff?.file}
+              status={busy}
               picked={pickedLabel(draft)}
               extra={
                 draft.kind === 'doc' && (
@@ -363,11 +380,7 @@ function NoteEditor({
           className="min-h-[40vh] w-full resize-y border-3 border-ink bg-paper p-3 font-mono text-[15px] leading-relaxed disabled:opacity-50"
         />
       ) : (
-        <div
-          className="lp-prose min-h-[40vh] border-3 border-ink bg-paper p-4"
-          // Sanitised by DOMPurify in renderMarkdown.
-          dangerouslySetInnerHTML={{ __html: preview }}
-        />
+        <Prose html={preview} className="min-h-[40vh] border-3 border-ink bg-paper p-4" />
       )}
     </div>
   );

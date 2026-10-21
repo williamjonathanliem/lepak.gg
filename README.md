@@ -41,7 +41,7 @@ Players never make an account. Each browser gets an invisible guest sign-in (Fir
 | **Firebase** Realtime Database + Auth | Guest sign-in, live game rooms (KataBomb), chat, "Want this" votes | Live |
 | **Supabase** Postgres + Storage | Lepak Pages: notes, PDFs, HTML sites, and their files | Planned |
 | **Vercel** | Hosts the site; later a small server function for AI Notes | Planned |
-| **GitHub Actions** | Nightly clean-up of stale data | Planned |
+| **GitHub Actions** | Pings Supabase every 3 days so the free project doesn't pause ([workflow](.github/workflows/keep-supabase-awake.yml)); later, nightly clean-up of stale data | Live once secrets are set |
 
 ### Firebase setup
 
@@ -123,4 +123,17 @@ The router picks it up from the registry automatically. Keep rules in plain func
 
 Brutalist black and white. Tokens live in `src/styles/index.css` (`ink`, `paper`, `mute`, `shadow-hard`, `px-gutter`...). Use those instead of raw hex values. Borders are 3px, corners are square, and shadows are hard offsets. Every screen must work at 360px wide.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how to help, and [CLAUDE.md](CLAUDE.md) for the full project brief.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to help, and [CLAUDE.md](CLAUDE.md) for the full project brief. Open-source libraries and data we use are listed in [CREDITS.md](CREDITS.md).
+
+## Checks on every push
+
+- **CI** ([workflow](.github/workflows/ci.yml)): lint, tests, build, then a Lighthouse check (accessibility must stay at 95+).
+- **CodeQL** ([workflow](.github/workflows/codeql.yml)): GitHub's free security scan.
+- **Dependabot** ([config](.github/dependabot.yml)): pull requests for dependency updates.
+
+## Contributors
+
+Everyone who helps gets credited here. Install the [all-contributors bot](https://allcontributors.org/docs/en/bot/installation), then comment `@all-contributors please add @username for code` on any issue or pull request.
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->

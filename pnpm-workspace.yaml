@@ -1,0 +1,8 @@
+# Install scripts pnpm may run. All of these are optional, so they're switched off:
+#   tesseract.js     - a "please donate" message
+#   @firebase/util   - writes Firebase Hosting auto-config (we host on Vercel)
+#   protobufjs       - a version check
+allowBuilds:
+  '@firebase/util': false
+  protobufjs: false
+  tesseract.js: false

@@ -18,6 +18,11 @@ import { letterBoxed } from './letter-boxed/manifest';
 import { tiles } from './tiles/manifest';
 import { pips } from './pips/manifest';
 import { sudoku } from './sudoku/manifest';
+import { whiteboard } from './whiteboard/manifest';
+import { trivia } from './trivia/manifest';
+import { cite } from './cite/manifest';
+import { toolbox } from './toolbox/manifest';
+import { bingo } from './bingo/manifest';
 
 // Adding an app: create src/apps/<id>/manifest.ts, then add it to this list.
 export const APPS: readonly AppManifest[] = [
@@ -40,6 +45,11 @@ export const APPS: readonly AppManifest[] = [
   tiles,
   pips,
   sudoku,
+  whiteboard,
+  trivia,
+  cite,
+  toolbox,
+  bingo,
 ];
 
 export const ROUTED_APPS: readonly RoutedAppManifest[] = APPS.filter(isRouted);

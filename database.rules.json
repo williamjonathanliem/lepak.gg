@@ -56,6 +56,62 @@
           ".validate": "newData.isBoolean() && newData.val() === true"
         }
       }
+    },
+    "boards": {
+      "$code": {
+        ".read": "auth != null",
+        ".validate": "$code.matches(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/)",
+        ".write": "auth != null && !newData.exists() && data.child('updatedAt').val() < now - 604800000",
+        "elements": {
+          "$id": {
+            ".write": "auth != null",
+            ".validate": "$id.length <= 64 && newData.hasChildren(['v', 'd']) && newData.child('v').isNumber() && newData.child('d').isString() && newData.child('d').val().length <= 30000"
+          }
+        },
+        "updatedAt": {
+          ".write": "auth != null",
+          ".validate": "newData.val() === now"
+        },
+        "presence": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isBoolean()"
+          }
+        },
+        "cursors": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['x', 'y', 'n']) && newData.child('x').isNumber() && newData.child('y').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 16"
+          }
+        }
+      }
+    },
+    "bingo": {
+      "$code": {
+        ".read": "auth != null",
+        ".validate": "$code.matches(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/)",
+        ".write": "auth != null && !newData.exists() && data.child('updatedAt').val() < now - 86400000",
+        "game": {
+          ".write": "auth != null && newData.child('hostId').val() === auth.uid && (!data.exists() || data.child('hostId').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['hostId', 'items'])"
+        },
+        "updatedAt": {
+          ".write": "auth != null && (!data.parent().child('game').exists() || data.parent().child('game/hostId').val() === auth.uid)",
+          ".validate": "newData.val() === now"
+        },
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.isString() && newData.val().length <= 16"
+          }
+        },
+        "claims": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid === $uid || (!newData.exists() && root.child('bingo').child($code).child('game/hostId').val() === auth.uid))",
+            ".validate": "newData.hasChildren(['nick', 'at']) && newData.child('nick').isString() && newData.child('nick').val().length <= 16 && newData.child('at').val() === now"
+          }
+        }
+      }
     }
   }
 }

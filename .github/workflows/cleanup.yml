@@ -23,7 +23,9 @@ on:
         type: boolean
         default: true
 
-permissions: {}
+# Read-only access to the code, so checkout works on a private repo. Nothing else.
+permissions:
+  contents: read
 
 jobs:
   cleanup:

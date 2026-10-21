@@ -1,0 +1,50 @@
+# Nightly clean-up: deletes old rooms, boards, votes, pages and unused guest accounts.
+# What goes when is in scripts/cleanup/cleanup.mjs (and on the Privacy page).
+#
+# Needs four repository secrets (GitHub repo > Settings > Secrets and variables > Actions):
+#   FIREBASE_SERVICE_ACCOUNT   Firebase console > Project settings > Service accounts >
+#                              Generate new private key. Paste the WHOLE JSON file.
+#   FIREBASE_DATABASE_URL      same value as VITE_FIREBASE_DATABASE_URL
+#   SUPABASE_URL               already added for keep-supabase-awake
+#   SUPABASE_SERVICE_ROLE_KEY  Supabase > Project settings > API > service_role (secret)
+#
+# These are admin keys. They live only in GitHub secrets, never in the code or .env files.
+# Try it first with "Run workflow" and dry run ticked: it only prints what it would delete.
+
+name: Clean up old data
+
+on:
+  schedule:
+    - cron: '0 19 * * *' # 19:00 UTC = 03:00 in Malaysia, every night
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Only print what would be deleted'
+        type: boolean
+        default: true
+
+permissions: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: scripts/cleanup
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install (clean-up job only)
+        run: npm install --no-audit --no-fund --no-package-lock
+      - name: Clean up
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node cleanup.mjs ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}

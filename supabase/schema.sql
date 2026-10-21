@@ -183,11 +183,11 @@ language sql stable security definer set search_path = '' as $$
   )
 $$;
 
--- For the nightly clean-up job (service key only): pages untouched for 90 days.
+-- For the nightly clean-up job (service key only): pages untouched for 30 days.
 create or replace function public.stale_pages() returns setof text
 language sql stable security definer set search_path = '' as $$
   select slug from public.pages
-   where greatest(updated_at, last_seen_at) < now() - interval '90 days'
+   where greatest(updated_at, last_seen_at) < now() - interval '30 days'
 $$;
 
 revoke execute on function public.stale_pages() from public, anon, authenticated;

@@ -4,7 +4,7 @@ import { Confetti } from '../../components/Confetti';
 import { firebaseEnabled } from '../../lib/firebase';
 import { readStorage, writeStorage } from '../../lib/storage';
 import { generateRoomCode, isValidRoomCode, normalizeRoomCode } from '../../lib/roomCode';
-import { SITE } from '../../lib/site';
+import { useGoneFor } from '../../lib/useGoneFor';
 import { NicknameGate } from '../katabomb/ui/NicknameGate';
 import {
   FREE,
@@ -17,6 +17,7 @@ import {
   winningLine,
 } from './logic/bingo';
 import { openBingo, type BingoRoom, type Game } from './net/bingoRoom';
+import { AppHeader } from '../../components/AppHeader';
 
 // Bingo: /bingo (home), /bingo/host/:code (caller screen), /bingo/r/:code (player card).
 
@@ -25,21 +26,7 @@ const ACCENT = '#ffd23f';
 export default function Bingo() {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex h-12 shrink-0 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
-        <Link
-          to="/bingo"
-          className="flex min-h-11 items-center px-4 font-mono text-sm font-bold uppercase no-underline"
-        >
-          Bingo
-        </Link>
-      </header>
+      <AppHeader app={{ name: 'Bingo', to: '/bingo', accent: ACCENT }} />
       <Routes>
         <Route index element={<Home />} />
         <Route path="host/:code" element={<CodeRoute screen="host" />} />
@@ -73,7 +60,7 @@ function useBingo(code: string) {
         if (closed) return opened.close();
         r = opened;
         setRoom(opened);
-        opened.onGame(setGame);
+        opened.onGame(setGame, () => setFailed(true));
       })
       .catch(() => setFailed(true));
     return () => {
@@ -88,8 +75,10 @@ function useBingo(code: string) {
 
 function Home() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<'numbers' | 'words'>('numbers');
-  const [words, setWords] = useState('');
+  // AI Notes can hand over key terms for a revision bingo.
+  const handed = (useLocation().state as { words?: string[] } | null)?.words;
+  const [mode, setMode] = useState<'numbers' | 'words'>(handed?.length ? 'words' : 'numbers');
+  const [words, setWords] = useState(handed?.join('\n') ?? '');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const list = parseWords(words);
@@ -227,6 +216,12 @@ function Host({ code }: { code: string }) {
     });
   }, [room, game, setup]);
 
+  // Players watch this: if the host's screen goes away, the game ends for everyone.
+  const isMine = !!room && !!game && game.hostId === room.selfId;
+  useEffect(() => {
+    if (isMine) room!.markHostHere();
+  }, [isMine, room]);
+
   // The claim checker below reads the latest game without re-subscribing.
   const gameRef = useRef(game);
   useEffect(() => {
@@ -261,7 +256,11 @@ function Host({ code }: { code: string }) {
   }, [room, code]);
 
   if (failed)
-    return <p className="px-gutter py-16 font-mono">Could not connect. Check your internet.</p>;
+    return (
+      <p className="px-gutter py-16 font-mono">
+        Could not open this game. Check your internet and try again.
+      </p>
+    );
   if (game === undefined || !room) return <p className="px-gutter py-16 font-mono">Loading...</p>;
   if (game === null)
     return (
@@ -274,6 +273,7 @@ function Host({ code }: { code: string }) {
       </p>
     );
   if (game.hostId !== room.selfId) return <Navigate to={`/bingo/r/${code}`} replace />;
+  if (game.closed) return <Ended text="You ended this game." />;
 
   const last = game.called.at(-1);
   const calledSet = new Set(game.called);
@@ -312,6 +312,13 @@ function Host({ code }: { code: string }) {
           className="push h-16 cursor-pointer border-3 border-ink bg-ink px-10 font-mono text-xl font-bold text-paper uppercase shadow-hard disabled:opacity-40"
         >
           Call next
+        </button>
+        <button
+          type="button"
+          onClick={() => void room.saveGame({ ...game, closed: true })}
+          className="min-h-11 cursor-pointer border-0 bg-transparent font-mono text-sm underline"
+        >
+          End game for everyone
         </button>
         <p className="m-0 font-mono text-sm">
           {game.called.length} / {game.items.length} called · {Object.keys(players).length} playing
@@ -368,13 +375,21 @@ function Player({ code, nick }: { code: string; nick: string }) {
     }
   });
   const [claimed, setClaimed] = useState(false);
+  const [hostHere, setHostHere] = useState(true);
+  const hostGone = useGoneFor(hostHere || !game);
 
   useEffect(() => {
-    if (room) void room.join(nick);
+    if (!room) return;
+    void room.join(nick);
+    return room.onHostHere(setHostHere);
   }, [room, nick]);
 
   if (failed)
-    return <p className="px-gutter py-16 font-mono">Could not connect. Check your internet.</p>;
+    return (
+      <p className="px-gutter py-16 font-mono">
+        Could not open this game. Check your internet and try again.
+      </p>
+    );
   if (game === undefined || !room) return <p className="px-gutter py-16 font-mono">Joining...</p>;
   if (game === null)
     return (
@@ -382,6 +397,8 @@ function Player({ code, nick }: { code: string; nick: string }) {
         No game with code {code} yet. Check the code on the screen.
       </p>
     );
+
+  if (game.closed || hostGone) return <Ended text="The host ended the game. Thanks for playing!" />;
 
   const card = makeCard(game.items, `${code}:${room.selfId}`);
   const called = new Set(game.called);
@@ -474,6 +491,19 @@ function Player({ code, nick }: { code: string; nick: string }) {
           Winners so far: {game.winners.map((w) => w.nick).join(', ')}
         </p>
       )}
+    </main>
+  );
+}
+
+function Ended({ text }: { text: string }) {
+  return (
+    <main className="flex flex-1 flex-col items-start gap-6 px-gutter py-16">
+      <p role="status" className="m-0 font-mono text-lg">
+        {text}
+      </p>
+      <Link to="/bingo" className="inline-flex min-h-11 items-center font-mono underline">
+        Back to Bingo
+      </Link>
     </main>
   );
 }

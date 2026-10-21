@@ -4,10 +4,11 @@ import {
   backToLobby,
   createGame,
   joinGame,
+  kickPlayer,
   leaveGame,
   rejectWord,
+  closeRoom,
   setConnected,
-  setHost,
   setReady,
   setStyle,
   startGame,
@@ -20,13 +21,22 @@ import type { GameState, Settings } from '../logic/types';
 import { openRoom } from './connect';
 import { parseIntent, type Intent } from './messages';
 import { censorText } from '../../../lib/profanity';
+import { useGoneFor } from '../../../lib/useGoneFor';
 import { CHAT_MAX_LENGTH, type ChatMessage, type RoomTransport } from './transport';
 
 const TICK_MS = 100;
-const HOST_GONE_MS = 2500; // how long the host can vanish before someone takes over
 const TYPING_THROTTLE_MS = 80;
+// Someone who closed the tab is removed after this long. Long enough to survive a refresh.
+const AWAY_LEAVE_MS = { lobby: 8000, playing: 15000, results: 8000 } as const;
 
-export type RoomStatus = 'connecting' | 'ready' | 'not-found' | 'full' | 'error';
+export type RoomStatus =
+  | 'connecting'
+  | 'ready'
+  | 'not-found'
+  | 'full'
+  | 'kicked'
+  | 'closed' // the host left
+  | 'error';
 
 export interface Room {
   status: RoomStatus;
@@ -50,6 +60,7 @@ export interface Room {
   // host only
   start: () => void;
   changeSettings: (patch: Partial<Settings>) => void;
+  kick: (playerId: string) => void;
   toLobby: () => void;
 }
 
@@ -70,12 +81,14 @@ export function useRoom(code: string, nickname: string, create: boolean): Room {
   const stateRef = useRef<GameState | null>(null);
   const onlineRef = useRef<ReadonlySet<string>>(new Set());
   const dictRef = useRef<Dictionary | null>(null);
-  const hostGoneSince = useRef<number | null>(null);
+  const awaySince = useRef(new Map<string, number>());
   const lastTypingSent = useRef(0);
   const pendingTyping = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const selfId = transport?.selfId ?? null;
   const isHost = !!state && !!selfId && state.hostId === selfId;
+  // The host closed the tab (and didn't come back within the grace time): room over.
+  const hostGone = useGoneFor(!state || isHost || online.has(state.hostId));
 
   // ---- connect ----
   useEffect(() => {
@@ -143,6 +156,10 @@ export function useRoom(code: string, nickname: string, create: boolean): Room {
       // Ignore echoes older than what the host already has.
       const current = stateRef.current;
       if (current && current.hostId === transport.selfId && incoming.seq < current.seq) return;
+      if (incoming.kicked.includes(transport.selfId)) {
+        setStatus('kicked');
+        return;
+      }
       stateRef.current = incoming;
       setState(incoming);
       setStatus('ready');
@@ -185,47 +202,26 @@ export function useRoom(code: string, nickname: string, create: boolean): Room {
     const id = setInterval(() => {
       let s = stateRef.current;
       if (!s || s.hostId !== transport.selfId) return;
+      const t = Date.now();
       for (const p of s.players) {
         const isOnline = onlineRef.current.has(p.id) || p.id === transport.selfId;
         if (p.connected !== isOnline) s = setConnected(s, p.id, isOnline);
+        // Gone for a while (tab closed, left the page): take them out so the room isn't stuck.
+        if (isOnline) awaySince.current.delete(p.id);
+        else {
+          const since = awaySince.current.get(p.id) ?? t;
+          awaySince.current.set(p.id, since);
+          if (t - since >= AWAY_LEAVE_MS[s.phase]) {
+            awaySince.current.delete(p.id);
+            s = leaveGame(s, p.id, env());
+          }
+        }
       }
       s = tick(s, env());
       commit(s);
     }, TICK_MS);
     return () => clearInterval(id);
   }, [transport, isHost, commit, env]);
-
-  // ---- everyone: take over if the host disappears ----
-  useEffect(() => {
-    if (!transport || isHost || !state) return;
-    const id = setInterval(() => {
-      const s = stateRef.current;
-      if (!s) return;
-      const on = onlineRef.current;
-      if (on.has(s.hostId)) {
-        hostGoneSince.current = null;
-        return;
-      }
-      hostGoneSince.current ??= Date.now();
-      if (Date.now() - hostGoneSince.current < HOST_GONE_MS) return;
-      // First online person in seat order takes over, so only one tab does.
-      const heir = s.players.find((p) => p.id !== s.hostId && on.has(p.id));
-      if (heir?.id !== transport.selfId) return;
-      hostGoneSince.current = null;
-      void ensureDictionary().then(() => {
-        const latest = stateRef.current;
-        if (latest && !onlineRef.current.has(latest.hostId)) {
-          commit(setHost(latest, transport.selfId));
-        }
-      });
-    }, 500);
-    return () => clearInterval(id);
-  }, [transport, isHost, state, commit, ensureDictionary]);
-
-  // ---- everyone: load words when a match is on, so anyone can take over as host ----
-  useEffect(() => {
-    if (state?.phase === 'playing') void ensureDictionary();
-  }, [state?.phase, ensureDictionary]);
 
   // ---- actions ----
   const send = useCallback((intent: Intent) => transport?.sendIntent(intent), [transport]);
@@ -243,7 +239,7 @@ export function useRoom(code: string, nickname: string, create: boolean): Room {
   );
 
   return {
-    status,
+    status: status === 'ready' && (state?.closed || hostGone) ? 'closed' : status,
     state,
     selfId,
     isHost,
@@ -271,11 +267,13 @@ export function useRoom(code: string, nickname: string, create: boolean): Room {
     },
     toggleReady: (ready) => send({ type: 'ready', ready }),
     setAvatar: (style) => send({ type: 'style', ...style }),
-    leave: () => send({ type: 'leave' }),
+    // The host leaving closes the room for everyone.
+    leave: () => (isHost ? hostDo(closeRoom) : send({ type: 'leave' })),
     start: () => {
       void ensureDictionary().then(() => hostDo((s) => startGame(s, env())));
     },
     changeSettings: (patch) => hostDo((s) => updateSettings(s, patch)),
+    kick: (playerId) => hostDo((s) => kickPlayer(s, playerId, env())),
     toLobby: () => hostDo(backToLobby),
   };
 }

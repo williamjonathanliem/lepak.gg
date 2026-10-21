@@ -96,8 +96,8 @@ describe('daily puzzle', () => {
 
   it('shares an emoji grid without letters', () => {
     const s = newGame('mango', ['manga', 'mango']);
-    const text = shareText(s, 'Wordl* #9');
-    expect(text).toContain('Wordl* #9 2/6');
+    const text = shareText(s, 'Letterlock #9');
+    expect(text).toContain('Letterlock #9 2/6');
     expect(text).toContain('🟩🟩🟩🟩⬛');
     expect(text).not.toMatch(/mango/i);
   });

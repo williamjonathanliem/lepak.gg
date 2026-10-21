@@ -1,4 +1,4 @@
-// Wordl* rules. Pure functions, no React, no storage.
+// Letterlock rules. Pure functions, no React, no storage.
 
 export const WORD_LENGTH = 5;
 export const MAX_GUESSES = 6;

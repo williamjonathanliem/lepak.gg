@@ -2,7 +2,7 @@
 // Runs in GitHub Actions (.github/workflows/cleanup.yml). Keep these numbers in sync with
 // the Privacy page (src/pages/Legal.tsx).
 //
-//   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc)
+//   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc), live note editing
 //   14 days  shared whiteboards (drawings + pictures)
 //   30 days  votes, Lepak Pages (+ files), guest accounts nobody has used
 //
@@ -24,6 +24,7 @@ const RETENTION = {
   'rooms/katabomb': 1 * DAY,
   bingo: 1 * DAY,
   rtc: 1 * DAY,
+  collab: 1 * DAY, // live note editing; the saved note lives in Supabase
   boards: 14 * DAY,
 };
 const VOTES_MS = 30 * DAY;

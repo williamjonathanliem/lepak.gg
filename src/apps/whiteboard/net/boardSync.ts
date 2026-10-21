@@ -2,6 +2,7 @@
 //
 //   boards/{CODE}/elements/{shapeId}  { v: version, d: shape as JSON text }
 //   boards/{CODE}/presence/{uid}      true while the board is open
+//   boards/{CODE}/files/{fileId}     { m: mime type, d: data URL, c: created } pictures, written once
 //   boards/{CODE}/cursors/{uid}       { x, y, n: nickname, t: tool, b: button } live mouse position
 //   boards/{CODE}/updatedAt           for cleaning up old boards
 //
@@ -25,7 +26,16 @@ export interface BoardConnection {
   send(elements: readonly Versioned[]): void;
   /** Share where our mouse is. Call often; it's throttled here. */
   sendCursor(cursor: Cursor): void;
+  /** Share a picture (already shrunk). Each id is written once. */
+  sendFile(file: SharedFile): Promise<void>;
   close(): void;
+}
+
+export interface SharedFile {
+  id: string;
+  mimeType: string;
+  dataURL: string;
+  created: number;
 }
 
 interface Handlers<T> {
@@ -35,11 +45,13 @@ interface Handlers<T> {
   onPeople(count: number): void;
   /** Everyone's mouse positions, by id (includes ours). */
   onCursors(cursors: Record<string, Cursor>): void;
+  /** Pictures shared on the board. */
+  onFile(file: SharedFile): void;
 }
 
 export async function openBoard<T extends Versioned>(
   code: string,
-  { onRemote, onPeople, onCursors }: Handlers<T>,
+  { onRemote, onPeople, onCursors, onFile }: Handlers<T>,
 ): Promise<BoardConnection> {
   const [{ getFirebase }, fb] = await Promise.all([
     import('../../../lib/firebase'),
@@ -106,6 +118,20 @@ export async function openBoard<T extends Versioned>(
   offs.push(fb.onChildAdded(r('elements'), take));
   offs.push(fb.onChildChanged(r('elements'), take));
 
+  // Pictures
+  offs.push(
+    fb.onChildAdded(r('files'), (snap) => {
+      const v = snap.val() as { m?: unknown; d?: unknown; c?: unknown } | null;
+      if (!v || typeof v.d !== 'string' || !v.d.startsWith('data:image/')) return;
+      onFile({
+        id: snap.key!,
+        mimeType: typeof v.m === 'string' ? v.m : 'image/webp',
+        dataURL: v.d,
+        created: typeof v.c === 'number' ? v.c : 0,
+      });
+    }),
+  );
+
   return {
     selfId: uid,
     sendCursor(cursor) {
@@ -113,6 +139,9 @@ export async function openBoard<T extends Versioned>(
       if (cursorTimer) return;
       const wait = Math.max(0, CURSOR_EVERY_MS - (Date.now() - lastCursorAt));
       cursorTimer = setTimeout(flushCursor, wait);
+    },
+    async sendFile(file) {
+      await fb.set(r(`files/${file.id}`), { m: file.mimeType, d: file.dataURL, c: file.created });
     },
     send(elements) {
       const patch: Record<string, unknown> = {};

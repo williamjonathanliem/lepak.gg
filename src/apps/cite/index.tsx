@@ -1,7 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link } from 'react-router';
 import { readStorage, writeStorage } from '../../lib/storage';
-import { SITE } from '../../lib/site';
 import {
   cite,
   inText,
@@ -14,6 +12,7 @@ import {
   type Style,
 } from './logic/cite';
 import { lookup } from './logic/lookup';
+import { AppHeader } from '../../components/AppHeader';
 
 // Cite: make APA 7, MLA 9 or Harvard references. Your list is saved on this device.
 
@@ -99,14 +98,7 @@ export default function Cite() {
   return (
     <div className="min-h-dvh">
       <title>Cite · Lepak.gg</title>
-      <header className="flex h-12 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
+      <AppHeader app={{ name: 'Cite', to: '/cite', accent: ACCENT }}>
         <div role="tablist" aria-label="Citation style" className="flex">
           {STYLES.map((s) => (
             <button
@@ -122,7 +114,7 @@ export default function Cite() {
             </button>
           ))}
         </div>
-      </header>
+      </AppHeader>
 
       <main className="mx-auto flex max-w-3xl flex-col gap-8 px-gutter py-[clamp(24px,5vw,48px)]">
         <div>
@@ -533,6 +525,7 @@ function Autofill({ onFound }: { onFound: (s: Source) => void }) {
           'Ordinary web links need the Lepak server, which this copy is not running. DOIs, ISBNs and PubMed links still work.',
         );
       else if (r === 'not-found') setMsg('Nothing found for that. Fill it in by hand below.');
+      else if (r === 'busy') setMsg('Too many link lookups in a row. Wait a minute and try again.');
       else {
         onFound(r);
         setMsg('Filled in. Check the details below.');

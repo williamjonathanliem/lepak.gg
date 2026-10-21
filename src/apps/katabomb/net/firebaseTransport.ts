@@ -172,6 +172,7 @@ function normalize(s: GameState): GameState {
       emoji: p.emoji ?? null,
     })),
     usedWords: s.usedWords ?? [],
+    kicked: s.kicked ?? [],
     placements: s.placements ?? [],
     turn: s.turn ? { ...s.turn, solutions: s.turn.solutions ?? 0 } : null,
     matchStartedAt: s.matchStartedAt ?? 0,

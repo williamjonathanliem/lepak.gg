@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import { Link, Navigate, Route, Routes, useParams } from 'react-router';
-import { SITE } from '../../lib/site';
 import { ACCENT } from './style';
 import { TOOLS, type ToolGroup } from './tools';
+import { AppHeader } from '../../components/AppHeader';
 
 // Toolbox: /tools (all tools) and /tools/:id (one tool). Everything runs on your device.
 
@@ -11,26 +11,7 @@ const GROUPS: ToolGroup[] = ['Study', 'Maths', 'Files', 'Design', 'Code'];
 export default function Toolbox() {
   return (
     <div className="min-h-dvh">
-      <header className="flex h-12 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
-        <Link
-          to="/tools"
-          className="flex min-h-11 items-center gap-2 px-4 font-mono text-sm font-bold uppercase no-underline"
-        >
-          <span
-            aria-hidden="true"
-            className="inline-block size-2 ring-2 ring-ink"
-            style={{ background: ACCENT }}
-          />
-          Toolbox
-        </Link>
-      </header>
+      <AppHeader app={{ name: 'Toolbox', to: '/tools', accent: ACCENT }} />
       <Routes>
         <Route index element={<All />} />
         <Route path=":id" element={<One />} />

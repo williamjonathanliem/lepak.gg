@@ -62,8 +62,8 @@ export function Game({ room }: { room: Room }) {
 
   const boom = state.event?.kind === 'boom' ? state.event : null;
   const holderIndex = seated.findIndex((p) => p.id === turn?.playerId);
-  const angleFor = (i: number) => (i / seated.length) * 2 * Math.PI - Math.PI / 2;
-  const pointerDeg = holderIndex >= 0 ? (angleFor(holderIndex) * 180) / Math.PI : -90;
+  // First seat on the left, then round clockwise, so two players face each other across the bomb.
+  const angleFor = (i: number) => (i / seated.length) * 2 * Math.PI + Math.PI;
   const round = Math.floor(state.turnCount / Math.max(1, alive)) + 1;
 
   return (
@@ -123,36 +123,21 @@ export function Game({ room }: { room: Room }) {
               className={`absolute inset-0 [container-type:size] ${boom ? 'animate-shake' : ''}`}
             >
               <div className="absolute top-1/2 left-1/2 size-[min(100cqw,100cqh)] -translate-x-1/2 -translate-y-1/2">
-                {/* arrow from the bomb to whoever holds it */}
-                <div
-                  aria-hidden="true"
-                  className="absolute top-1/2 left-1/2 h-0 w-0 transition-transform duration-300 ease-out"
-                  style={{ transform: `rotate(${pointerDeg}deg)` }}
-                >
-                  <div className="absolute top-0 left-[14cqmin] flex -translate-y-1/2 items-center drop-shadow-[0_2px_0_rgb(0_0_0/0.4)]">
-                    <div className="h-[clamp(5px,1.4cqmin,10px)] w-[10cqmin] rounded-l-full bg-hot" />
-                    <div className="h-0 w-0 border-y-[clamp(9px,2.6cqmin,18px)] border-l-[clamp(14px,4cqmin,28px)] border-y-transparent border-l-hot" />
+                {/* middle: the letters to match, then the bomb, then what's being typed */}
+                <div className="absolute top-1/2 left-1/2 z-10 flex w-[52%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-[2.5cqmin]">
+                  <PromptCard prompt={turn?.prompt ?? ''} solutions={turn?.solutions ?? 0} />
+                  <div className="relative size-[22cqmin]">
+                    <Arrow index={holderIndex} count={seated.length} />
+                    <TimerRing fraction={fraction} danger={danger && !!turn} />
+                    <div className="absolute inset-[16%]">
+                      <Bomb fraction={fraction} danger={danger && !!turn} />
+                    </div>
                   </div>
-                </div>
-
-                {/* bomb with the prompt on it */}
-                <div className="absolute top-1/2 left-1/2 w-[30%] -translate-x-[47%] -translate-y-[60%]">
-                  <Bomb fraction={fraction} danger={danger && !!turn} />
-                  <div className="absolute top-[60%] left-[47%] flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-                    <span
-                      key={turn?.prompt}
-                      className="animate-pop font-sans text-[clamp(24px,8.5cqmin,72px)] leading-none font-black tracking-wide text-paper uppercase"
-                    >
-                      <span className="sr-only">Letters: </span>
-                      {turn?.prompt}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className={`mt-[0.6cqmin] font-mono text-[clamp(11px,2.8cqmin,20px)] font-bold ${danger ? 'text-hot' : 'text-paper/60'}`}
-                    >
-                      {secondsLeft}s
-                    </span>
-                  </div>
+                  <TypingTiles
+                    text={holder ? (room.typing[holder.id] ?? '') : ''}
+                    prompt={turn?.prompt ?? ''}
+                    turnKey={`${turn?.playerId}-${turn?.startedAt}`}
+                  />
                 </div>
 
                 {/* boom! */}
@@ -187,8 +172,6 @@ export function Game({ room }: { room: Room }) {
                           active={p.id === turn?.playerId}
                           host={p.id === state.hostId}
                           you={p.id === room.selfId}
-                          typing={room.typing[p.id] ?? ''}
-                          prompt={turn?.prompt ?? ''}
                           room={room}
                         />
                       </li>
@@ -258,6 +241,127 @@ export function Game({ room }: { room: Room }) {
   );
 }
 
+// ---------- middle of the table ----------
+
+/** The letters every word must contain, on a card, with how many words fit. */
+function PromptCard({ prompt, solutions }: { prompt: string; solutions: number }) {
+  return (
+    <div
+      key={prompt}
+      className="relative animate-pop border-3 border-paper/80 bg-ink px-[3cqmin] py-[1.2cqmin] shadow-[5px_5px_0_rgb(0_0_0/0.45)]"
+    >
+      <span className="sr-only">Letters: </span>
+      <span className="font-sans text-[clamp(28px,9cqmin,80px)] leading-none font-black tracking-wide text-paper uppercase">
+        {prompt}
+      </span>
+      {solutions > 0 && (
+        <span
+          aria-hidden="true"
+          className="absolute right-1 bottom-0.5 font-mono text-[clamp(9px,1.8cqmin,13px)] text-paper/50"
+        >
+          {compact(solutions)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** What the player with the bomb is typing, one tile per letter. Letters that make the prompt are outlined. */
+function TypingTiles({ text, prompt, turnKey }: { text: string; prompt: string; turnKey: string }) {
+  const at = prompt ? text.toLowerCase().indexOf(prompt) : -1;
+  const letters = [...text.slice(0, 30)];
+  // One row: tiles shrink as the word gets long.
+  const size = `clamp(14px, ${Math.min(5.6, 56 / Math.max(1, letters.length))}cqmin, 46px)`;
+  return (
+    <div
+      key={turnKey}
+      aria-hidden="true"
+      className="relative z-10 flex min-h-[clamp(30px,7cqmin,56px)] w-[110%] justify-center gap-[0.5cqmin]"
+    >
+      {letters.map((ch, i) => {
+        const hit = at >= 0 && i >= at && i < at + prompt.length;
+        return (
+          <span
+            key={i}
+            style={{ width: size, height: size, fontSize: `calc(${size} * 0.66)` }}
+            className={`flex shrink-0 animate-pop items-center justify-center border-2 font-sans leading-none font-black uppercase ${
+              hit ? 'border-hot bg-hot/15 text-paper' : 'border-paper/25 bg-ink text-paper/90'
+            }`}
+          >
+            {ch}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Ring round the bomb that empties as the fuse burns. */
+function TimerRing({ fraction, danger }: { fraction: number; danger: boolean }) {
+  return (
+    <svg viewBox="0 0 100 100" aria-hidden="true" className="absolute inset-0 -rotate-90">
+      <circle
+        cx="50"
+        cy="50"
+        r="46"
+        fill="rgb(255 255 255 / 0.04)"
+        stroke="rgb(255 255 255 / 0.12)"
+        strokeWidth="4"
+      />
+      <circle
+        cx="50"
+        cy="50"
+        r="46"
+        fill="none"
+        stroke={danger ? 'var(--color-hot)' : 'rgb(255 255 255 / 0.55)'}
+        strokeWidth="4"
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray="1 1"
+        strokeDashoffset={1 - fraction}
+        className="transition-[stroke-dashoffset,stroke] duration-150 ease-linear"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Arrow from the bomb to whoever holds it. Turns the short way round when the bomb moves,
+ * so it never spins all the way back from the last seat to the first.
+ */
+function Arrow({ index, count }: { index: number; count: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const last = useRef<number | null>(null);
+  const target = index >= 0 ? (index / Math.max(1, count)) * 360 + 180 : 180;
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const from = last.current;
+    let to = target;
+    if (from !== null) {
+      const diff = ((((target - from) % 360) + 540) % 360) - 180;
+      to = from + diff;
+    }
+    last.current = to;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.animate([{ transform: `rotate(${from ?? to}deg)` }, { transform: `rotate(${to}deg)` }], {
+      duration: reduce || from === null ? 0 : 380,
+      easing: 'cubic-bezier(.2,.9,.3,1.2)',
+      fill: 'forwards',
+    });
+  }, [target]);
+
+  return (
+    <div ref={ref} aria-hidden="true" className="absolute top-1/2 left-1/2 h-0 w-0">
+      <div className="absolute top-0 left-[12.5cqmin] flex -translate-y-1/2 items-center drop-shadow-[0_2px_0_rgb(0_0_0/0.4)]">
+        <div className="h-[clamp(5px,1.3cqmin,10px)] w-[7cqmin] rounded-l-full bg-paper/85" />
+        <div className="h-0 w-0 border-y-[clamp(9px,2.4cqmin,18px)] border-l-[clamp(14px,3.6cqmin,28px)] border-y-transparent border-l-paper/85" />
+      </div>
+    </div>
+  );
+}
+
 // ---------- seat ----------
 
 interface SeatProps {
@@ -266,12 +370,10 @@ interface SeatProps {
   active: boolean;
   host: boolean;
   you: boolean;
-  typing: string;
-  prompt: string;
   room: Room;
 }
 
-function Seat({ player, maxLives, active, host, you, typing, prompt, room }: SeatProps) {
+function Seat({ player, maxLives, active, host, you, room }: SeatProps) {
   const event = room.state!.event;
   const lastWord = event?.kind === 'word' && event.playerId === player.id ? event.word : null;
   const bounced = event?.kind === 'reject' && event.playerId === player.id;
@@ -348,9 +450,7 @@ function Seat({ player, maxLives, active, host, you, typing, prompt, room }: Sea
         className="mt-2 min-h-[1.3em] w-[180%] truncate font-sans text-[clamp(14px,3.8cqmin,30px)] font-black tracking-wide uppercase"
         aria-hidden="true"
       >
-        {active ? (
-          <Highlight text={typing} prompt={prompt} />
-        ) : lastWord ? (
+        {lastWord ? (
           <span key={room.state!.seq} className="inline-block animate-pop text-paper">
             {lastWord}
           </span>
@@ -539,11 +639,11 @@ function CompactTable({ room, fraction, danger, secondsLeft, shakeKey }: Compact
       <div className="flex items-center gap-3">
         <div className="relative w-16 shrink-0">
           <Bomb fraction={fraction} danger={danger && !!turn} />
-          <span className="absolute top-[60%] left-[47%] -translate-x-1/2 -translate-y-1/2 font-sans text-sm font-black text-paper uppercase">
-            <span className="sr-only">Letters: </span>
-            {turn?.prompt}
-          </span>
         </div>
+        <span className="shrink-0 border-2 border-paper/30 bg-ink px-2 py-1 font-sans text-2xl leading-none font-black text-paper uppercase">
+          <span className="sr-only">Letters: </span>
+          {turn?.prompt}
+        </span>
         <div className="min-w-0 flex-1">
           <p className="m-0 flex items-baseline gap-2 font-mono text-xs uppercase">
             {holder && (

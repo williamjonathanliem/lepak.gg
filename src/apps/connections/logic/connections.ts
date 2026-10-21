@@ -1,4 +1,4 @@
-// Connecti*ns rules. Pure functions, no React, no storage.
+// Groupthink rules. Pure functions, no React, no storage.
 import type { Puzzle } from './puzzles';
 
 export const MAX_MISTAKES = 4;

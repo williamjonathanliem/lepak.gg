@@ -58,11 +58,17 @@ interface Done {
 
 function Publish() {
   // The landing page can hand over a file or a link (in memory, via router state).
-  const handoff = (useLocation().state ?? null) as { file?: File; slug?: string } | null;
+  // Other apps can hand over a file, or a ready note (AI Notes sends { title, markdown }).
+  const handoff = (useLocation().state ?? null) as {
+    file?: File;
+    slug?: string;
+    title?: string;
+    markdown?: string;
+  } | null;
   const [mode, setMode] = useState<'write' | 'drop'>(handoff?.file ? 'drop' : 'write');
   const [draft, setDraft] = useState<Draft>({ kind: 'note' });
-  const [title, setTitle] = useState('');
-  const [body, setBody] = useState('');
+  const [title, setTitle] = useState(handoff?.title ?? '');
+  const [body, setBody] = useState((handoff?.markdown ?? '').slice(0, MAX_NOTE_CHARS));
   const [slug, setSlug] = useState(handoff?.slug ?? '');
   const [slugTouched, setSlugTouched] = useState(!!handoff?.slug);
   const [preview, setPreview] = useState<string | null>(null);

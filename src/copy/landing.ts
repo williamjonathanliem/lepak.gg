@@ -5,7 +5,7 @@ import type { NicknameError } from '../lib/identity';
 
 export const NAV = {
   index: 'Index',
-  pages: 'Pages',
+  pages: 'Study',
   source: 'Source',
   enter: '[ Enter ]',
 };
@@ -17,7 +17,7 @@ export const HERO = {
   /** Edit this list to change the typewriter words. */
   typedWords: ['Students', 'Learners', 'Educators(?)', 'Night owls'],
   ariaLabel: 'Hello, students, learners, educators(?) and night owls',
-  sub: 'Play, study and share in one hub. Party games, daily word puzzles, notes you can publish as a page. Free, open source, no signup.',
+  sub: 'Play, study and share in one hub. Party games, class bingo, watch parties, phone-to-laptop file drops and notes you can publish as a page. Free, open source, no signup.',
   nicknameLabel: '> Pick a nickname',
   nicknamePlaceholder: 'kopiboi',
   submit: 'Jom masuk',
@@ -37,34 +37,58 @@ export const INDEX = {
   heading: ['The', 'Index.'],
   note: 'start here!',
   blurb:
-    'Everything in the hub. Games first, then the tools you wish someone showed you in week one.',
+    'Everything in the hub, grouped. Games to play with friends, a daily puzzle habit, and the study tools you wish someone showed you in week one.',
+  counts: (live: number, soon: number) => `${live} live now · ${soon} on the way`,
+  live: 'Live',
+  soon: 'Soon',
+  showMore: (n: number) => `+ ${n} more`,
+  showLess: 'Show less',
 };
 
 export const DEMO = {
   label: 'Live now',
   heading: ['Jom,', 'try it.'],
-  body: 'Three games and Lepak Pages are live. No signup, just a nickname. Send the code to your group chat and go.',
+  body: 'Games, a shared whiteboard, watch parties, file drops and Lepak Pages are live. No signup, just a nickname. Send the code to your group chat and go.',
   games: [
     { label: 'KataBomb', to: '/katabomb', color: '#ff7a45' },
-    { label: 'Wordl*', to: '/wordl', color: '#7ee081' },
-    { label: 'Connecti*ns', to: '/connections', color: '#b9a2ff' },
-    { label: 'Lepak Pages', to: '/pages', color: '#ffd23f' },
+    { label: 'Bingo', to: '/bingo', color: '#ffd23f' },
+    { label: 'Watch Together', to: '/watch', color: '#ff8fd0' },
+    { label: 'Device Drop', to: '/drop', color: '#4fd1e8' },
+    { label: 'Whiteboard', to: '/whiteboard', color: '#b9a2ff' },
+    { label: 'Lepak Pages', to: '/pages', color: '#7ee081' },
   ],
 };
 
-export const PAGES = {
-  label: 'Lepak Pages',
+export const STUDY = {
+  label: 'Study kit',
   badge: 'New',
-  heading: ['Drop a PDF.', 'Get a link.'],
-  body: 'Drag in a .docx, .pdf or .md, or just start typing. Pick a link, hit publish, share it with the class. Pages are unlisted: only people with the link can see them.',
-  steps: ['Write or drop your file', 'Pick a slug', 'Share the link or QR'],
-  dropTitle: 'Drop file here',
+  sticker: 'AI inside',
+  heading: ['Drop your notes.', 'Pick what you need.'],
+  body: 'Lecture slides, a PDF or a Word file. Turn it into study notes and flashcards, a deck you can present, or a page you can share with the class.',
+  options: {
+    notes: {
+      title: 'Study notes',
+      blurb: 'Summary, key terms, flashcards and a quick quiz.',
+      button: 'Make notes',
+    },
+    slides: {
+      title: 'Slides',
+      blurb: 'Check the plan, then present or download as PowerPoint.',
+      button: 'Make slides',
+    },
+    page: {
+      title: 'A shareable page',
+      blurb: 'Publish it with its own link or QR. Unlisted by default.',
+      button: 'Publish',
+    },
+  },
+  dropTitle: 'Drop a file here',
   dropNow: 'Drop it!',
   browse: 'or tap to choose',
-  dropHint: '.docx / .pdf / .md, up to 10 MB',
-  slugPrefix: '/n/',
-  slugExample: 'bio-chapter-3',
-  publish: 'Publish',
+  another: 'Pick another file',
+  dropHint: '.pdf / .pptx / .docx / .txt',
+  pick: 'Now pick what to make:',
+  orStart: 'Or start without a file:',
 };
 
 export const STEPS = [
@@ -74,7 +98,7 @@ export const STEPS = [
   },
   {
     title: 'Open an app',
-    body: 'A party game, a daily puzzle, a notes page. All free, all in one place.',
+    body: 'A party game, a whiteboard, a watch party, a file drop. All free, all in one place.',
   },
   {
     title: 'Send the code',
@@ -93,7 +117,14 @@ export const SOURCE = {
 
 export const FOOTER = {
   tagline: 'An open source student project. Made in Malaysia.',
-  links: { github: 'GitHub', bug: 'Report a bug', contribute: 'Contribute', top: 'Top ↑' },
+  links: {
+    github: 'GitHub',
+    bug: 'Report a bug',
+    contribute: 'Contribute',
+    privacy: 'Privacy',
+    terms: 'Terms',
+    top: 'Top ↑',
+  },
   bigWord: 'Lepak.',
   note: 'see you inside',
 };

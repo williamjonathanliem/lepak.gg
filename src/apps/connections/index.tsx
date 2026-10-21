@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import { Link } from 'react-router';
 import { Confetti } from '../../components/Confetti';
 import { SITE } from '../../lib/site';
 import { todayNumber } from '../wordl/logic/storage';
@@ -14,8 +13,7 @@ import {
 } from './logic/connections';
 import { PUZZLES, type Puzzle } from './logic/puzzles';
 import { loadDay, loadStats, recordResult, saveDay, type ConnStats } from './logic/storage';
-
-// Working name "Connecti*ns": placeholder until we pick our own name.
+import { AppHeader } from '../../components/AppHeader';
 
 /** Group colours by level, easiest first. All keep black text readable. */
 const LEVEL_BG = ['#ffd23f', '#7ee081', '#4fd1e8', '#b9a2ff'];
@@ -36,6 +34,14 @@ function seeded(seed: number) {
     x = (x * 9301 + 49297) % 233280;
     return x / 233280;
   };
+}
+
+/** Tile text size: as big as fits, so the longest word stays on one line (never split
+ * mid-word). Uses the tile's own width (cqw), capped at 17px. */
+function tileFont(word: string): string {
+  const longest = Math.max(...word.split(/\s+/).map((part) => part.length));
+  // Archivo Black capitals are about 0.72em wide.
+  return `min(17px, calc(92cqw / ${(Math.max(4, longest) * 0.72).toFixed(2)}))`;
 }
 
 export default function Connections() {
@@ -60,7 +66,7 @@ export default function Connections() {
   const puzzle = mode === 'daily' ? daily : practicePuzzle;
   const state = mode === 'daily' ? dailyState : practiceState;
   const setState = mode === 'daily' ? setDailyState : setPracticeState;
-  const label = mode === 'daily' ? `Connecti*ns #${day}` : 'Connecti*ns practice';
+  const label = mode === 'daily' ? `Groupthink #${day}` : 'Groupthink practice';
 
   const say = useCallback((text: string) => {
     const id = Date.now();
@@ -103,15 +109,8 @@ export default function Connections() {
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper text-ink">
-      <title>Connecti*ns · Lepak.gg</title>
-      <header className="flex h-12 shrink-0 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
+      <title>Groupthink · Lepak.gg</title>
+      <AppHeader app={{ name: 'Groupthink', to: '/groupthink', accent: '#b9a2ff' }}>
         <div className="flex items-stretch" role="tablist">
           {(['daily', 'practice'] as Mode[]).map((m) => (
             <button
@@ -129,7 +128,7 @@ export default function Connections() {
             </button>
           ))}
         </div>
-      </header>
+      </AppHeader>
 
       <main className="relative mx-auto flex min-h-0 w-full max-w-xl flex-1 flex-col gap-3 px-3 py-3">
         <h1 className="m-0 text-center font-mono text-sm font-normal">
@@ -180,13 +179,14 @@ export default function Connections() {
                     type="button"
                     aria-pressed={on}
                     onClick={() => toggle(w)}
-                    className={`flex min-h-0 cursor-pointer items-center justify-center border-3 border-ink px-1 font-sans text-[clamp(10px,3.1vw,17px)] leading-tight font-black break-all uppercase transition-transform active:scale-95 ${
+                    className={`flex min-h-0 min-w-0 [container-type:inline-size] cursor-pointer items-center justify-center overflow-hidden border-3 border-ink px-1 text-center font-sans leading-tight font-black break-normal uppercase transition-transform active:scale-95 ${
                       on
                         ? `bg-ink text-paper ${shakeId ? 'animate-shake' : ''}`
                         : 'bg-soft text-ink'
                     }`}
                   >
-                    {w}
+                    {/* Long words shrink to fit on one line instead of breaking mid-word. */}
+                    <span style={{ fontSize: tileFont(w) }}>{w}</span>
                   </button>
                 );
               })}
@@ -228,7 +228,7 @@ export default function Connections() {
                 type="button"
                 onClick={() => {
                   void navigator.clipboard
-                    ?.writeText(`${shareText(state, puzzle, label)}\n${SITE.domain}/connections`)
+                    ?.writeText(`${shareText(state, puzzle, label)}\n${SITE.domain}/groupthink`)
                     .then(() => {
                       setCopied(true);
                       setTimeout(() => setCopied(false), 1500);

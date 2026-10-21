@@ -35,6 +35,8 @@ function Room({ code, nickname }: { code: string; nickname: string }) {
     return <Message text={KB.connecting} />;
   }
   if (room.status === 'not-found') return <Message text={KB.notFound} back />;
+  if (room.status === 'kicked') return <Message text={KB.kicked} back />;
+  if (room.status === 'closed') return <Message text={KB.closed} back />;
   if (room.status === 'error' || !room.state) return <Message text={KB.error} back />;
 
   const { phase } = room.state;

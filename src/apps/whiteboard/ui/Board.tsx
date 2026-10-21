@@ -2,19 +2,21 @@ import { Excalidraw, useHandleLibrary } from '@excalidraw/excalidraw';
 import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type {
+  BinaryFileData,
+  BinaryFiles,
   Collaborator,
   ExcalidrawImperativeAPI,
   LibraryItems,
   SocketId,
 } from '@excalidraw/excalidraw/types';
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { getNickname } from '../../../lib/identity';
 import { readStorage, writeStorage } from '../../../lib/storage';
 import { avatarColor } from '../../katabomb/ui/avatar';
-import { SITE } from '../../../lib/site';
 import { changedSince, mergeElements } from '../logic/sync';
 import { openBoard, type BoardConnection } from '../net/boardSync';
+import { loadSoloFiles, saveSoloFiles, shrinkImage } from './images';
+import { AppHeader } from '../../../components/AppHeader';
 
 // The drawing surface. Solo boards save to this browser; shared boards sync live
 // through Firebase (see net/boardSync.ts).
@@ -61,6 +63,8 @@ export function Board({ code }: BoardProps) {
   const [people, setPeople] = useState(1);
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const sentFiles = useRef(new Set<string>()); // pictures already shared or received
   const conn = useRef<BoardConnection | null>(null);
   const known = useRef(new Map<string, number>()); // last version sent/received per shape
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -70,6 +74,12 @@ export function Board({ code }: BoardProps) {
   // Adds libraries picked on libraries.excalidraw.com (they come back via the URL) and
   // keeps the library saved on this device.
   useHandleLibrary({ excalidrawAPI: api, adapter: libraryAdapter });
+
+  // Solo board: bring back saved pictures.
+  useEffect(() => {
+    if (code || !api) return;
+    void loadSoloFiles().then((files) => files.length && api.addFiles(files));
+  }, [code, api]);
 
   // Shared board: connect, merge what others draw.
   useEffect(() => {
@@ -84,6 +94,10 @@ export function Board({ code }: BoardProps) {
         api.updateScene({ elements: merged });
       },
       onPeople: setPeople,
+      onFile(file) {
+        sentFiles.current.add(file.id);
+        api.addFiles([file as BinaryFileData]);
+      },
       onCursors(cursors) {
         // Everyone else's mouse, drawn by the board as named, coloured pointers.
         const collaborators = new Map<SocketId, Collaborator>();
@@ -114,15 +128,41 @@ export function Board({ code }: BoardProps) {
     };
   }, [code, api]);
 
-  function onChange(elements: readonly El[]) {
+  /** Shares pictures that shapes use but nobody has sent yet. */
+  function shareFiles(elements: readonly El[], files: BinaryFiles) {
+    for (const el of elements) {
+      if (el.type !== 'image' || el.isDeleted || !el.fileId) continue;
+      const file = files[el.fileId];
+      if (!file || sentFiles.current.has(file.id)) continue;
+      sentFiles.current.add(file.id);
+      void shrinkImage(file).then((small) => {
+        if (!small) {
+          setNotice('That picture is too big to share. Others will see an empty box.');
+          return;
+        }
+        return conn.current?.sendFile(small).catch(() => {
+          sentFiles.current.delete(file.id);
+          setNotice('Could not share that picture. Try again in a moment.');
+        });
+      });
+    }
+  }
+
+  function onChange(elements: readonly El[], files: BinaryFiles) {
     if (!code) {
-      // Solo: save to this browser (deleted shapes dropped).
+      // Solo: save to this browser (deleted shapes dropped, pictures in IndexedDB).
       if (pending.current) clearTimeout(pending.current);
       pending.current = setTimeout(() => {
-        writeStorage(SOLO_KEY, JSON.stringify(elements.filter((e) => !e.isDeleted)));
+        const live = elements.filter((e) => !e.isDeleted);
+        writeStorage(SOLO_KEY, JSON.stringify(live));
+        const used = new Set(
+          live.flatMap((e) => (e.type === 'image' && e.fileId ? [e.fileId] : [])),
+        );
+        void saveSoloFiles(files, used);
       }, 400);
       return;
     }
+    shareFiles(elements, files);
     // Shared: send only what changed, a few times a second at most.
     if (pending.current) return;
     pending.current = setTimeout(() => {
@@ -140,15 +180,7 @@ export function Board({ code }: BoardProps) {
   return (
     <div className="flex h-dvh flex-col overflow-hidden">
       <title>{code ? `Whiteboard ${code} · Lepak.gg` : 'Whiteboard · Lepak.gg'}</title>
-      <header className="flex h-12 shrink-0 items-stretch justify-between border-b-3 border-ink bg-paper">
-        <Link
-          to="/whiteboard"
-          className="flex items-center gap-2 px-gutter font-mono text-sm font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-          <span className="max-sm:hidden"> · WHITEBOARD</span>
-        </Link>
+      <AppHeader app={{ name: 'Whiteboard', to: '/whiteboard', accent: '#b9a2ff' }}>
         {code ? (
           <div className="flex items-stretch font-mono text-sm">
             <span className="flex items-center px-3 text-mute">{people} here</span>
@@ -171,7 +203,7 @@ export function Board({ code }: BoardProps) {
             Saved on this device
           </span>
         )}
-      </header>
+      </AppHeader>
       {failed && (
         <p
           role="alert"
@@ -180,11 +212,27 @@ export function Board({ code }: BoardProps) {
           Could not connect to the shared board. Your drawing stays on this screen only.
         </p>
       )}
+      {notice && (
+        <p
+          role="status"
+          className="m-0 flex items-center justify-between gap-3 border-b-3 border-ink bg-[#ffd23f] px-gutter py-1 font-mono text-sm"
+        >
+          {notice}
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="min-h-11 cursor-pointer border-0 bg-transparent px-2 font-mono font-bold"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </p>
+      )}
       <div className="min-h-0 flex-1">
         <Excalidraw
           excalidrawAPI={setApi}
           initialData={{ elements: initial, appState: { viewBackgroundColor: '#f9fafb' } }}
-          onChange={(elements) => onChange(elements)}
+          onChange={(elements, _appState, files) => onChange(elements, files)}
           isCollaborating={!!code}
           onPointerUpdate={
             code
@@ -198,8 +246,7 @@ export function Board({ code }: BoardProps) {
                   })
               : undefined
           }
-          // Images aren't synced (they'd be big files), so the image tool is hidden.
-          UIOptions={{ tools: { image: false }, canvasActions: { loadScene: false } }}
+          UIOptions={{ canvasActions: { loadScene: false } }}
         />
       </div>
     </div>

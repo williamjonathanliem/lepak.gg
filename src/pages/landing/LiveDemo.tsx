@@ -51,9 +51,12 @@ export function LiveDemo() {
 
   const text = reduced ? step.word : step.word.slice(0, typed);
   const boom = done && !step.ok && !reduced;
-  const angle = (i: number) => (i / PLAYERS.length) * 2 * Math.PI - Math.PI / 2;
-  const pointer = (angle(step.who) * 180) / Math.PI;
+  // First seat on the left, then clockwise, like the real game.
+  const angle = (i: number) => (i / PLAYERS.length) * 2 * Math.PI + Math.PI;
+  // Turns go round in seat order, so the arrow only ever turns forward.
+  const pointer = 180 + beat * (360 / PLAYERS.length);
   const fuse = reduced ? 0.6 : 1 - typed / (step.word.length + 4);
+  const at = text.indexOf(step.prompt);
 
   return (
     <section
@@ -85,28 +88,79 @@ export function LiveDemo() {
       {/* the fake game */}
       <div
         aria-hidden="true"
-        className="relative min-h-[380px] overflow-hidden bg-night bg-[radial-gradient(ellipse_at_50%_50%,#3a3029_0%,#1d1915_45%,var(--color-night)_80%)] [container-type:size] min-[700px]:border-l-3 max-[700px]:border-t-3 border-ink"
+        className="relative min-h-[380px] overflow-hidden max-[680px]:h-[clamp(340px,100vw,460px)] bg-night bg-[radial-gradient(ellipse_at_50%_50%,#3a3029_0%,#1d1915_45%,var(--color-night)_80%)] [container-type:size] min-[700px]:border-l-3 max-[700px]:border-t-3 border-ink"
       >
         <div
           key={boom ? beat : 'calm'}
           className={`absolute inset-0 m-auto size-[min(92cqw,92cqh)] ${boom ? 'animate-shake' : ''}`}
         >
-          {/* arrow */}
-          <div
-            className="absolute top-1/2 left-1/2 h-0 w-0 transition-transform duration-300"
-            style={{ transform: `rotate(${pointer}deg)` }}
-          >
-            <div className="absolute top-0 left-[15cqmin] flex -translate-y-1/2 items-center">
-              <div className="h-2 w-[9cqmin] bg-hot" />
-              <div className="h-0 w-0 border-y-[12px] border-l-[20px] border-y-transparent border-l-hot" />
-            </div>
-          </div>
-          {/* bomb */}
-          <div className="absolute top-1/2 left-1/2 w-[32%] -translate-x-[47%] -translate-y-[60%]">
-            <Bomb fraction={fuse} danger={fuse < 0.35} />
-            <span className="absolute top-[60%] left-[47%] -translate-x-1/2 -translate-y-1/2 font-sans text-[9cqmin] font-black text-paper uppercase">
+          {/* middle: prompt card, bomb in its ring with the arrow, typed letters */}
+          <div className="absolute top-1/2 left-1/2 z-10 flex w-[50%] -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-[2.5cqmin]">
+            <span
+              key={step.prompt}
+              className="animate-pop border-3 border-paper/80 bg-ink px-[3cqmin] py-[1cqmin] font-sans text-[8cqmin] leading-none font-black text-paper uppercase"
+            >
               {step.prompt}
             </span>
+            <div className="relative size-[22cqmin]">
+              <div
+                className="absolute top-1/2 left-1/2 h-0 w-0 transition-transform duration-500 ease-[cubic-bezier(.2,.9,.3,1.2)]"
+                style={{ transform: `rotate(${pointer}deg)` }}
+              >
+                <div className="absolute top-0 left-[12.5cqmin] flex -translate-y-1/2 items-center">
+                  <div className="h-[1.3cqmin] w-[6cqmin] rounded-l-full bg-paper/85" />
+                  <div className="h-0 w-0 border-y-[2.2cqmin] border-l-[3.4cqmin] border-y-transparent border-l-paper/85" />
+                </div>
+              </div>
+              <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="rgb(255 255 255 / 0.04)"
+                  stroke="rgb(255 255 255 / 0.12)"
+                  strokeWidth="4"
+                />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r="46"
+                  fill="none"
+                  stroke={fuse < 0.35 ? 'var(--color-hot)' : 'rgb(255 255 255 / 0.55)'}
+                  strokeWidth="4"
+                  strokeLinecap="round"
+                  pathLength={1}
+                  strokeDasharray="1 1"
+                  strokeDashoffset={1 - fuse}
+                  className="transition-[stroke-dashoffset] duration-100 ease-linear"
+                />
+              </svg>
+              <div className="absolute inset-[16%]">
+                <Bomb fraction={fuse} danger={fuse < 0.35} />
+              </div>
+            </div>
+            <div className="flex min-h-[6cqmin] justify-center gap-[0.5cqmin]">
+              {[...text].map((ch, i) => {
+                const hit = at >= 0 && i >= at && i < at + step.prompt.length;
+                const bad = done && !step.ok;
+                return (
+                  <span
+                    key={i}
+                    className={`flex size-[5.4cqmin] animate-pop items-center justify-center border-2 font-sans text-[3.6cqmin] font-black uppercase ${
+                      bad
+                        ? 'border-hot text-hot'
+                        : done && step.ok
+                          ? 'border-[#7ee081] text-[#7ee081]'
+                          : hit
+                            ? 'border-hot bg-hot/15 text-paper'
+                            : 'border-paper/25 bg-ink text-paper/90'
+                    }`}
+                  >
+                    {ch}
+                  </span>
+                );
+              })}
+            </div>
           </div>
           {boom && (
             <div className="absolute top-1/2 left-1/2 z-20 flex size-[36cqmin] -translate-x-1/2 -translate-y-1/2 animate-burst items-center justify-center bg-hot font-sans text-[8cqmin] font-black text-ink [clip-path:polygon(50%_0,61%_30%,95%_20%,72%_47%,100%_70%,66%_70%,62%_100%,45%_74%,15%_96%,24%_64%,0_45%,30%_38%,12%_8%,42%_25%)]">
@@ -121,7 +175,7 @@ export function LiveDemo() {
               <div
                 key={p.name}
                 className="absolute flex w-[30%] -translate-x-1/2 -translate-y-1/2 flex-col items-center text-paper"
-                style={{ left: `${50 + 36 * Math.cos(a)}%`, top: `${50 + 34 * Math.sin(a)}%` }}
+                style={{ left: `${50 + 38 * Math.cos(a)}%`, top: `${50 + 36 * Math.sin(a)}%` }}
               >
                 <span className="mb-1 text-[4cqmin] font-black">{p.name}</span>
                 <span
@@ -129,15 +183,6 @@ export function LiveDemo() {
                   style={{ background: p.color }}
                 >
                   {p.emoji}
-                </span>
-                <span className="mt-2 min-h-[1.2em] font-sans text-[5cqmin] font-black uppercase">
-                  {active && (
-                    <span
-                      className={done ? (step.ok ? 'text-[#7ee081]' : 'text-hot line-through') : ''}
-                    >
-                      {text}
-                    </span>
-                  )}
                 </span>
               </div>
             );

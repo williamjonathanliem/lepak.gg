@@ -36,12 +36,12 @@ Vite + React + TypeScript (strict), Tailwind CSS v4, React Router, Zod, Vitest. 
 
 Players never make an account. Each browser gets an invisible guest sign-in (Firebase anonymous auth), and every service checks that guest id.
 
-| Service | What it does here | Status |
-| --- | --- | --- |
-| **Firebase** Realtime Database + Auth | Guest sign-in, live game rooms (KataBomb), chat, "Want this" votes | Live |
-| **Supabase** Postgres + Storage | Lepak Pages: notes, PDFs, HTML sites, and their files | Planned |
-| **Vercel** | Hosts the site; later a small server function for AI Notes | Planned |
-| **GitHub Actions** | Pings Supabase every 3 days so the free project doesn't pause ([workflow](.github/workflows/keep-supabase-awake.yml)); later, nightly clean-up of stale data | Live once secrets are set |
+| Service                               | What it does here                                                                                                                                            | Status                    |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------- |
+| **Firebase** Realtime Database + Auth | Guest sign-in, live game rooms (KataBomb), chat, "Want this" votes                                                                                           | Live                      |
+| **Supabase** Postgres + Storage       | Lepak Pages: notes, PDFs, HTML sites, and their files                                                                                                        | Planned                   |
+| **Vercel**                            | Hosts the site; later a small server function for AI Notes                                                                                                   | Planned                   |
+| **GitHub Actions**                    | Pings Supabase every 3 days so the free project doesn't pause ([workflow](.github/workflows/keep-supabase-awake.yml)); later, nightly clean-up of stale data | Live once secrets are set |
 
 ### Firebase setup
 
@@ -53,12 +53,16 @@ Without `.env.local`, KataBomb still runs in "this device only" mode (tabs on on
 
 ### What is stored, and for how long
 
-| Data | Where | Kept |
-| --- | --- | --- |
-| Nickname, guest id, game stats, daily puzzle progress | Your browser (`localStorage`) | Until you clear site data |
-| Game rooms, chat | Firebase | Deleted 24 hours after the room was last used |
-| Votes | Firebase | Until removed |
-| Pages and uploaded files | Supabase | Deleted after 90 days without a visit or edit |
+| Data                                                        | Where               | Kept                                          |
+| ----------------------------------------------------------- | ------------------- | --------------------------------------------- |
+| Game rooms, bingo, Watch Together / Device Drop rooms, chat | Firebase            | Deleted 1 day after the room was last used    |
+| Shared whiteboards (drawings, pictures)                     | Firebase            | Deleted 14 days after the last change         |
+| Votes for the next app                                      | Firebase            | 30 days                                       |
+| Pages and uploaded files                                    | Supabase            | Deleted after 30 days without a visit or edit |
+| Guest accounts (anonymous sign-in)                          | Firebase + Supabase | Deleted after 30 days unused                  |
+| Nickname, guest id, stats, solo board, citations            | Your browser        | Cleared after 30 days unused                  |
+
+The nightly [clean-up job](.github/workflows/cleanup.yml) does the deleting ([script](scripts/cleanup/cleanup.mjs)). It needs four GitHub secrets, listed at the top of the workflow. Try it with **Run workflow** and _dry run_ ticked first. The same numbers are on the [Privacy page](src/pages/Legal.tsx); change both together.
 
 Pages are **unlisted** by default: only people with the link can open them.
 

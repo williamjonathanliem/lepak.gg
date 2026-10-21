@@ -23,6 +23,8 @@ import { trivia } from './trivia/manifest';
 import { cite } from './cite/manifest';
 import { toolbox } from './toolbox/manifest';
 import { bingo } from './bingo/manifest';
+import { watch } from './watch/manifest';
+import { aiSlides } from './ai-slides/manifest';
 
 // Adding an app: create src/apps/<id>/manifest.ts, then add it to this list.
 export const APPS: readonly AppManifest[] = [
@@ -50,6 +52,8 @@ export const APPS: readonly AppManifest[] = [
   cite,
   toolbox,
   bingo,
+  watch,
+  aiSlides,
 ];
 
 export const ROUTED_APPS: readonly RoutedAppManifest[] = APPS.filter(isRouted);

@@ -1,99 +1,217 @@
-import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
-import { loadStats as connectionsStats } from '../apps/connections/logic/storage';
+import { groupedApps, playersLabel } from '../apps/groups';
 import { APPS, ROUTED_APPS } from '../apps/registry';
 import type { AppManifest, RoutedAppManifest } from '../apps/types';
-import { loadStats as wordlStats, todayNumber } from '../apps/wordl/logic/storage';
+import { AppHeader } from '../components/AppHeader';
 import { InputError } from '../components/Input';
 import { HUB } from '../copy/hub';
 import { NICKNAME_ERRORS } from '../copy/landing';
+import { dailyStatus, recentApps, type DailyStatus } from '../lib/activity';
+import { firebaseEnabled } from '../lib/firebase';
+import { findRoom, type RoomMatch } from '../lib/findRoom';
 import { getNickname, saveNickname } from '../lib/identity';
+import { today } from '../lib/puzzle';
 import { isValidRoomCode, normalizeRoomCode } from '../lib/roomCode';
-import { SITE } from '../lib/site';
 import { setVote, votesEnabled, watchVotes, type VoteSnapshot } from '../lib/votes';
 
-// The app launcher after "Jom masuk". Kept deliberately calm: one column,
-// a greeting with the join box, the playable games, and a short "coming soon" list.
+// The app launcher after "Jom masuk": a hello with today's progress and your recent apps,
+// a join-with-code box, today's daily puzzles, the apps in groups, and the vote list.
 
-/** Today's status for the daily games, read from this browser's saved progress. */
-function dailyStatus(app: RoutedAppManifest, day: number): string | null {
-  const stats =
-    app.id === 'wordl' ? wordlStats() : app.id === 'connections' ? connectionsStats() : null;
-  if (!stats) return null;
-  return stats.lastDay === day ? HUB.dailyDone(day) : HUB.dailyWaiting(day);
+/** Playable daily puzzle games, in hub order. */
+function dailyGames(): RoutedAppManifest[] {
+  const group = groupedApps(ROUTED_APPS).find((g) => g.id === 'daily');
+  return (group?.apps ?? []).filter(
+    (a): a is RoutedAppManifest => a.status !== 'planned' && a.id !== 'trivia',
+  );
 }
 
 export default function Hub() {
   const [nickname, setNickname] = useState(getNickname);
-  const [day] = useState(todayNumber);
+  const [day] = useState(today);
+  const [recent] = useState(recentApps);
   if (!nickname) return <Navigate to="/#nickname" replace />;
+
+  const daily = dailyGames();
+  const statuses = daily.map((a) => dailyStatus(a.id, day));
+  const doneCount = statuses.filter((s) => s === 'done').length;
+  const lastUsed = recent
+    .map((route) => ROUTED_APPS.find((a) => a.route === route))
+    .filter((a): a is RoutedAppManifest => !!a)
+    .slice(0, 4);
+  const groups = groupedApps(ROUTED_APPS).filter((g) => g.id !== 'daily');
 
   return (
     <div className="min-h-dvh">
       <title>Hub · Lepak.gg</title>
-      <header className="border-b-3 border-ink">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-gutter py-3">
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 font-mono text-lg font-bold tracking-[0.02em] no-underline"
-          >
-            <span aria-hidden="true" className="inline-block size-4 bg-ink" />
-            {SITE.wordmark}
-          </Link>
+      <AppHeader>
+        <div className="flex items-center border-l-3 border-ink px-3">
           <NicknameEditor nickname={nickname} onSaved={setNickname} />
         </div>
-      </header>
+      </AppHeader>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-12 px-gutter py-[clamp(32px,6vw,64px)]">
-        {/* greeting + join */}
-        <section className="flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <h1 className="m-0 text-[clamp(36px,5vw,56px)] leading-none font-black tracking-[-0.04em] uppercase">
-              {HUB.hello(nickname)}
-            </h1>
-            <p className="mt-3 mb-0 text-mute">{HUB.sub}</p>
+      <main className="mx-auto flex max-w-6xl flex-col gap-10 px-gutter py-[clamp(24px,5vw,56px)]">
+        {/* hello + join */}
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <div className="flex min-w-0 flex-col justify-between gap-6 border-3 border-ink bg-ink p-6 text-paper">
+            <div>
+              <h1 className="m-0 text-[clamp(34px,5vw,56px)] leading-none font-black tracking-[-0.04em] uppercase">
+                {HUB.hello(nickname)}
+              </h1>
+              <p className="mt-3 mb-0 text-paper/70">{HUB.sub}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="m-0 font-mono text-xs uppercase">
+                {HUB.todayLine(day, doneCount, daily.length)}
+              </p>
+              <div className="flex gap-1" aria-hidden="true">
+                {statuses.map((st, i) => (
+                  <span
+                    key={daily[i]!.id}
+                    className="h-2 flex-1 border border-paper/40"
+                    style={{
+                      background:
+                        st === 'done'
+                          ? daily[i]!.accent
+                          : st === 'started'
+                            ? 'rgb(249 250 251 / 0.35)'
+                            : 'transparent',
+                    }}
+                  />
+                ))}
+              </div>
+              {lastUsed.length > 0 && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs text-paper/60 uppercase">{HUB.jumpBack}</span>
+                  {lastUsed.map((a) => (
+                    <Link
+                      key={a.id}
+                      to={a.route}
+                      className="inline-flex min-h-11 items-center gap-2 border-2 border-paper/60 px-3 font-mono text-sm text-paper no-underline hover:bg-paper hover:text-ink"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-2.5"
+                        style={{ background: a.accent }}
+                      />
+                      {a.name}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <JoinBox />
         </section>
 
-        {/* play now */}
-        <section aria-labelledby="play-h">
-          <h2 id="play-h" className="m-0 mb-4 font-mono text-sm font-bold tracking-wide uppercase">
-            {HUB.playNow}
-          </h2>
-          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(min(260px,100%),1fr))] gap-4 p-0">
-            {ROUTED_APPS.map((app) => (
+        {/* today's puzzles */}
+        <section aria-labelledby="daily-h">
+          <SectionHead
+            id="daily-h"
+            title={HUB.dailyTitle(day)}
+            blurb={HUB.dailyBlurb}
+            count={daily.length}
+          />
+          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-3 p-0">
+            {daily.map((app, i) => (
               <li key={app.id} className="flex">
-                <PlayCard app={app} status={dailyStatus(app, day)} />
+                <DailyTile app={app} status={statuses[i]!} />
               </li>
             ))}
           </ul>
         </section>
 
-        {/* coming soon */}
+        {groups.map((g) =>
+          g.apps.length ? (
+            <section key={g.id} aria-labelledby={`${g.id}-h`}>
+              <SectionHead id={`${g.id}-h`} title={g.title} blurb={g.blurb} count={g.apps.length} />
+              <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(260px,100%),1fr))] gap-3 p-0">
+                {g.apps.map((app) => (
+                  <li key={app.id} className="flex">
+                    <AppCard app={app as RoutedAppManifest} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null,
+        )}
+
         <ComingSoon apps={APPS.filter((a) => a.status === 'planned')} />
       </main>
     </div>
   );
 }
 
-/** A playable app: colour bar, name, one line, status. The whole card is the link. */
-function PlayCard({ app, status }: { app: RoutedAppManifest; status: string | null }) {
+function SectionHead({
+  id,
+  title,
+  blurb,
+  count,
+}: {
+  id: string;
+  title: string;
+  blurb: string;
+  count: number;
+}) {
+  return (
+    <div className="mb-3 flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b-3 border-ink pb-2">
+      <h2
+        id={id}
+        className="m-0 text-[clamp(22px,3vw,30px)] leading-none font-black tracking-[-0.02em] uppercase"
+      >
+        {title}{' '}
+        <span className="align-middle font-mono text-sm font-normal text-mute">{count}</span>
+      </h2>
+      <p className="m-0 font-mono text-xs text-mute">{blurb}</p>
+    </div>
+  );
+}
+
+/** A daily puzzle: name and today's state. Done ones go quiet so the rest stand out. */
+function DailyTile({ app, status }: { app: RoutedAppManifest; status: DailyStatus }) {
+  const label =
+    status === 'done' ? HUB.statusDone : status === 'started' ? HUB.statusStarted : HUB.statusNew;
   return (
     <Link
       to={app.route}
-      className="push flex w-full flex-col border-3 border-ink bg-paper text-ink no-underline shadow-hard"
-      style={{ '--accent': app.accent } as CSSProperties}
+      aria-label={`${app.name}: ${label}`}
+      className="push flex min-h-24 w-full flex-col justify-between gap-3 border-3 border-ink p-3 text-ink no-underline shadow-hard-sm"
+      style={{ background: status === 'done' ? '#f9fafb' : app.accent }}
     >
-      <span aria-hidden="true" className="h-3 border-b-3 border-ink bg-(--accent)" />
-      <span className="flex flex-1 flex-col gap-2 p-5">
-        <span className="text-[28px] leading-none font-black tracking-[-0.03em] uppercase">
-          {app.name}
+      <span className="text-[18px] leading-tight font-black uppercase">{app.name}</span>
+      <span className="flex items-center gap-1.5 font-mono text-xs font-bold">
+        <span
+          aria-hidden="true"
+          className={`inline-flex size-4 items-center justify-center border-2 border-ink text-[10px] ${status === 'done' ? 'bg-ink text-paper' : 'bg-paper'}`}
+        >
+          {status === 'done' ? '✓' : status === 'started' ? '•' : ''}
         </span>
-        <span className="text-[15px] text-mute">{app.tagline}</span>
-        <span className="mt-auto pt-3 font-mono text-xs font-bold uppercase">
-          {status ?? HUB.players(app.minPlayers, app.maxPlayers)}
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+/** A playable app: colour block with its number, name, one line, who it's for. */
+function AppCard({ app }: { app: RoutedAppManifest }) {
+  return (
+    <Link
+      to={app.route}
+      className="push flex w-full gap-3 border-3 border-ink bg-paper p-3 text-ink no-underline shadow-hard-sm"
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-12 shrink-0 items-center justify-center border-2 border-ink font-mono text-xs font-bold"
+        style={{ background: app.accent }}
+      >
+        {app.number}
+      </span>
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-[19px] leading-tight font-black uppercase">{app.name}</span>
+        <span className="line-clamp-2 text-sm text-mute">
+          {app.tagline.replace(/ Inspired by .*$/, '')}
         </span>
+        <span className="font-mono text-[11px] font-bold uppercase">{playersLabel(app)}</span>
       </span>
     </Link>
   );
@@ -108,12 +226,12 @@ function ComingSoon({ apps }: { apps: AppManifest[] }) {
 
   return (
     <section aria-labelledby="soon-h">
-      <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="soon-h" className="m-0 font-mono text-sm font-bold tracking-wide uppercase">
-          {HUB.comingSoon} <span className="font-normal text-mute">({apps.length})</span>
-        </h2>
-        <p className="m-0 font-mono text-xs text-mute">{HUB.comingSoonBlurb}</p>
-      </div>
+      <SectionHead
+        id="soon-h"
+        title={HUB.comingSoon}
+        blurb={HUB.comingSoonBlurb}
+        count={apps.length}
+      />
       <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
         {sorted.map((app) => {
           const voted = votes?.mine.has(app.id) ?? false;
@@ -151,22 +269,45 @@ function ComingSoon({ apps }: { apps: AppManifest[] }) {
   );
 }
 
-/** Type a room code, land in that room. Compact, sits beside the greeting. */
+/** Type a room code; we find which app it belongs to and take you there. */
 function JoinBox() {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [choices, setChoices] = useState<RoomMatch[]>([]);
 
-  function onSubmit(e: FormEvent) {
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    setChoices([]);
     if (!isValidRoomCode(code)) return setError(HUB.badCode);
-    navigate(`/katabomb/r/${normalizeRoomCode(code)}`);
+    const clean = normalizeRoomCode(code);
+    // Without the Lepak server (local test copies), rooms are KataBomb tabs on this device.
+    if (!firebaseEnabled) return navigate(`/katabomb/r/${clean}`);
+    setBusy(true);
+    setError(null);
+    try {
+      const found = await findRoom(clean);
+      if (found.length === 1) navigate(found[0]!.path);
+      else if (found.length > 1) setChoices(found);
+      else setError(HUB.noRoom);
+    } catch {
+      setError(HUB.lookupFailed);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <form noValidate onSubmit={onSubmit} className="flex flex-col gap-1.5">
+    <form
+      noValidate
+      onSubmit={onSubmit}
+      className="flex min-w-0 flex-col gap-3 border-3 border-ink p-5"
+    >
+      <h2 className="m-0 text-2xl font-black uppercase">{HUB.joinTitle}</h2>
+      <p className="m-0 text-sm text-mute">{HUB.joinBlurb}</p>
       <label htmlFor="hub-code" className="font-mono text-xs uppercase">
-        {HUB.joinTitle}
+        {HUB.joinLabel}
       </label>
       <div className="flex">
         <input
@@ -178,26 +319,39 @@ function JoinBox() {
           spellCheck={false}
           placeholder="KJRW"
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? 'hub-code-error' : 'hub-code-hint'}
+          aria-describedby={error ? 'hub-code-error' : undefined}
           onChange={(e) => {
             setCode(e.target.value.toUpperCase());
             setError(null);
+            setChoices([]);
           }}
-          className="h-12 w-32 border-3 border-ink bg-paper px-3 font-mono text-xl tracking-[0.25em] uppercase"
+          className="h-12 min-w-0 flex-1 border-3 border-ink bg-paper px-3 font-mono text-xl tracking-[0.25em] uppercase"
         />
         <button
           type="submit"
-          className="h-12 cursor-pointer border-3 border-l-0 border-ink bg-ink px-4 font-mono text-sm font-bold text-paper uppercase"
+          disabled={busy}
+          className="h-12 cursor-pointer border-3 border-l-0 border-ink bg-ink px-5 font-mono text-sm font-bold text-paper uppercase disabled:opacity-60"
         >
-          {HUB.join}
+          {busy ? HUB.looking : HUB.join}
         </button>
       </div>
-      {error ? (
-        <InputError id="hub-code" error={error} />
-      ) : (
-        <p id="hub-code-hint" className="m-0 font-mono text-xs text-mute">
-          {HUB.joinHint}
-        </p>
+      {error && <InputError id="hub-code" error={error} />}
+      {choices.length > 1 && (
+        <div className="flex flex-col gap-2" role="status">
+          <p className="m-0 font-mono text-xs uppercase">{HUB.whichOne}</p>
+          <div className="flex flex-wrap gap-2">
+            {choices.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => navigate(c.path)}
+                className="min-h-11 cursor-pointer border-3 border-ink bg-paper px-3 font-mono text-sm font-bold"
+              >
+                {c.name} →
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </form>
   );

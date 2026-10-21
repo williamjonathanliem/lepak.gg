@@ -7,7 +7,7 @@ import { MAX_FILE_BYTES, classifyFile, type DropKind } from '../logic/pages';
 
 type Phase = 'idle' | 'over' | 'checking' | 'ok' | 'bad';
 
-interface Check {
+export interface Check {
   label: string;
   ok: boolean;
 }
@@ -60,9 +60,27 @@ interface DropZoneProps {
   initialFile?: File;
   /** Progress line while a slow step runs, e.g. "Reading text 45%". */
   status?: string | null;
+  // The rest let other apps (e.g. AI Notes) reuse the box with their own checks and words.
+  /** The checklist shown when a file lands. Defaults to Lepak Pages' checks. */
+  checksFor?: (f: File) => Check[];
+  /** File picker filter. */
+  accept?: string;
+  /** Small line under the box. */
+  hint?: string;
+  title?: string;
 }
 
-export function DropZone({ onFile, picked, extra, initialFile, status }: DropZoneProps) {
+export function DropZone({
+  onFile,
+  picked,
+  extra,
+  initialFile,
+  status,
+  checksFor: makeChecks = checksFor,
+  accept = '.md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip,.png,.jpg,.jpeg,.webp,.gif,.bmp',
+  hint = LP.dropHint,
+  title = LP.dropTitle,
+}: DropZoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [phase, setPhase] = useState<Phase>('idle');
   const [checks, setChecks] = useState<Check[]>([]);
@@ -70,7 +88,7 @@ export function DropZone({ onFile, picked, extra, initialFile, status }: DropZon
   const [runId, setRunId] = useState(0);
 
   async function take(file: File) {
-    const list = checksFor(file);
+    const list = makeChecks(file);
     setChecks(list);
     setError(null);
     setPhase('checking');
@@ -165,11 +183,7 @@ export function DropZone({ onFile, picked, extra, initialFile, status }: DropZon
         </span>
 
         <p className="m-0 text-xl font-black uppercase" aria-live="polite">
-          {over
-            ? LP.dropNow
-            : phase === 'checking'
-              ? (status ?? LP.checking)
-              : (picked ?? LP.dropTitle)}
+          {over ? LP.dropNow : phase === 'checking' ? (status ?? LP.checking) : (picked ?? title)}
         </p>
 
         {phase !== 'idle' && phase !== 'over' && (
@@ -212,7 +226,7 @@ export function DropZone({ onFile, picked, extra, initialFile, status }: DropZon
         <input
           ref={inputRef}
           type="file"
-          accept=".md,.markdown,.txt,.docx,.pdf,.html,.htm,.zip,.png,.jpg,.jpeg,.webp,.gif,.bmp"
+          accept={accept}
           className="sr-only"
           tabIndex={-1}
           onChange={(e) => {
@@ -223,7 +237,7 @@ export function DropZone({ onFile, picked, extra, initialFile, status }: DropZon
         />
       </div>
       {extra}
-      <p className="m-0 font-mono text-xs text-mute">{LP.dropHint}</p>
+      <p className="m-0 font-mono text-xs text-mute">{hint}</p>
     </div>
   );
 }

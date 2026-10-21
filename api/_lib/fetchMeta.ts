@@ -103,10 +103,103 @@ export async function fetchPageMeta(raw: string): Promise<PageMeta> {
   }
 }
 
+// ---------- abuse guards ----------
+//
+// /api/meta fetches pages for Cite only. Two cheap checks stop other sites and scripts from
+// using it as a free page fetcher:
+// 1. The request must come from our own pages (browsers send Sec-Fetch-Site / Origin).
+// 2. Each IP gets RATE_LIMIT lookups per minute. With Upstash Redis set up (env below) the
+//    count is shared by every server instance; without it, each instance counts on its own
+//    (rougher, but still something, and it's what runs in local dev).
+//
+//    UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN  (or KV_REST_API_URL + KV_REST_API_TOKEN,
+//    the names the Vercel Upstash integration uses). Server-only: never VITE_.
+
+const RATE_LIMIT = 20;
+const RATE_WINDOW_MS = 60_000;
+const MAX_URL_LENGTH = 2000;
+const hits = new Map<string, { count: number; resetAt: number }>();
+
+/** True if this IP may make another lookup now. */
+export function allowRequest(ip: string, now = Date.now(), limit = RATE_LIMIT): boolean {
+  const entry = hits.get(ip);
+  if (!entry || entry.resetAt <= now) {
+    if (hits.size > 5000) hits.clear(); // don't grow forever
+    hits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= limit;
+}
+
+type Limiter = { limit(id: string): Promise<{ success: boolean }> };
+let shared: Promise<Limiter | null> | null = null;
+
+/** The Upstash limiter, or null when it isn't configured. Created once per instance. */
+function sharedLimiter(): Promise<Limiter | null> {
+  shared ??= (async () => {
+    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+    if (!url || !token) return null;
+    const [{ Ratelimit }, { Redis }] = await Promise.all([
+      import('@upstash/ratelimit'),
+      import('@upstash/redis'),
+    ]);
+    return new Ratelimit({
+      redis: new Redis({ url, token }),
+      limiter: Ratelimit.slidingWindow(RATE_LIMIT, '1 m'),
+      prefix: 'lepak:meta',
+    });
+  })();
+  return shared;
+}
+
+/** Shared limit when Upstash is set up, otherwise this instance's own count. */
+async function underLimit(ip: string): Promise<boolean> {
+  const limiter = await sharedLimiter();
+  if (!limiter) return allowRequest(ip);
+  try {
+    return (await limiter.limit(ip)).success;
+  } catch {
+    return allowRequest(ip); // Redis down: fall back rather than block everyone
+  }
+}
+
+/** True if the request was made by a page on our own site. */
+export function fromOurSite(request: Request): boolean {
+  const site = request.headers.get('sec-fetch-site');
+  if (site) return site === 'same-origin' || site === 'same-site';
+  const host = new URL(request.url).host;
+  const from = request.headers.get('origin') ?? request.headers.get('referer');
+  if (!from) return false;
+  try {
+    return new URL(from).host === host;
+  } catch {
+    return false;
+  }
+}
+
+function clientIp(request: Request): string {
+  return (
+    request.headers.get('x-real-ip') ??
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+    'unknown'
+  );
+}
+
 /** Shared request handler: GET /api/meta?url=... -> PageMeta as JSON. */
 export async function handleMetaRequest(request: Request): Promise<Response> {
   const target = new URL(request.url).searchParams.get('url');
   if (!target) return Response.json({ error: 'Missing url' }, { status: 400 });
+  if (target.length > MAX_URL_LENGTH)
+    return Response.json({ error: 'Link too long' }, { status: 414 });
+  if (!fromOurSite(request)) return Response.json({ error: 'Not allowed' }, { status: 403 });
+  if (!(await underLimit(clientIp(request)))) {
+    return Response.json(
+      { error: 'Too many lookups. Wait a minute.' },
+      { status: 429, headers: { 'Retry-After': '60' } },
+    );
+  }
   try {
     const meta = await fetchPageMeta(target);
     return Response.json(meta, {

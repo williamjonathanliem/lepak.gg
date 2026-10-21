@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router';
 import { Confetti } from '../../components/Confetti';
-import { SITE } from '../../lib/site';
 import {
   QUESTION_SECONDS,
   answer,
@@ -15,6 +13,7 @@ import {
   type QuizState,
   type RawQuestion,
 } from './logic/trivia';
+import { AppHeader } from '../../components/AppHeader';
 
 // Trivia: 10 quick questions from Open Trivia DB. Their questions are licensed CC BY-SA 4.0,
 // which asks us to credit them, so the credit line is on every screen.
@@ -99,20 +98,13 @@ export default function Trivia() {
   return (
     <div className="flex min-h-dvh flex-col">
       <title>Trivia · Lepak.gg</title>
-      <header className="flex h-12 shrink-0 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
+      <AppHeader app={{ name: 'Trivia', to: '/trivia', accent: '#ff8fd0' }}>
         {quiz && (
           <span className="flex items-center px-4 font-mono text-sm font-bold">
             {quiz.score} pts
           </span>
         )}
-      </header>
+      </AppHeader>
 
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-6 px-gutter py-[clamp(24px,5vw,48px)]">
         {!quiz ? (

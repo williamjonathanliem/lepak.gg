@@ -88,7 +88,7 @@ describe('extras', () => {
 
   it('shares colours, not words', () => {
     const s = submit(newGame(puzzle, fixed), puzzle, words(0)).state;
-    const text = shareText(s, puzzle, 'Connecti*ns #1');
+    const text = shareText(s, puzzle, 'Groupthink #1');
     expect(text).toContain('🟨🟨🟨🟨');
     expect(text).not.toContain('MARS');
   });

@@ -93,7 +93,7 @@ export function Results({ room, onLeave }: { room: Room; onLeave: () => void }) 
             onClick={onLeave}
             className="min-h-11 cursor-pointer border-0 bg-transparent p-0 underline"
           >
-            {KB.leave}
+            {room.isHost ? KB.closeRoom : KB.leave}
           </button>
           <Link to="/hub" className="inline-flex min-h-11 items-center underline">
             {KB.toHub}

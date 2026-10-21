@@ -72,6 +72,10 @@ export interface GameState {
   /** When the current match started (ms epoch), 0 in the lobby. */
   matchStartedAt: number;
   usedWords: string[];
+  /** Ids the host removed. They can't join this room again. */
+  kicked: string[];
+  /** The host left, so the room is over for everyone. */
+  closed?: boolean;
   /** Results: player ids, winner first. */
   placements: string[];
   /** Latest thing that happened. Clients use it for sounds and shakes. */

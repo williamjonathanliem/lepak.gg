@@ -214,7 +214,7 @@ export function mapPageMeta(m: PageMeta, url: string): Source {
 
 // ---------- fetching ----------
 
-export type LookupResult = Source | 'not-found' | 'bad-input' | 'no-server';
+export type LookupResult = Source | 'not-found' | 'bad-input' | 'no-server' | 'busy';
 
 async function json<T>(url: string, init?: RequestInit): Promise<T | null> {
   const res = await fetch(url, init);
@@ -275,6 +275,7 @@ export async function lookup(input: string): Promise<LookupResult> {
       if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {
         return 'no-server'; // the server function isn't running (e.g. plain static preview)
       }
+      if (res.status === 429) return 'busy';
       if (!res.ok) return 'not-found';
       const meta = (await res.json()) as PageMeta;
       // Pages that carry a DOI get the full journal details from Crossref.

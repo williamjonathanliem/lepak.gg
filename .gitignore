@@ -9,3 +9,7 @@ coverage
 
 # Private notes (accounts, owners). Never commit.
 /private/
+
+# Playwright
+/test-results/
+/playwright-report/

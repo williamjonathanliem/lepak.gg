@@ -124,7 +124,7 @@ export function Lobby({ room, code, onLeave }: LobbyProps) {
             onClick={onLeave}
             className="mt-auto inline-flex min-h-11 cursor-pointer items-center self-start border-0 bg-transparent p-0 font-mono text-sm underline"
           >
-            {KB.leave}
+            {room.isHost ? KB.closeRoom : KB.leave}
           </button>
         </section>
 
@@ -146,7 +146,19 @@ export function Lobby({ room, code, onLeave }: LobbyProps) {
                   {p.emoji ? `${p.emoji} ` : ''}
                   {p.nickname}
                 </span>
-                <PlayerTags room={room} player={p} />
+                <span className="flex items-center gap-2">
+                  <PlayerTags room={room} player={p} />
+                  {room.isHost && p.id !== room.selfId && (
+                    <button
+                      type="button"
+                      onClick={() => room.kick(p.id)}
+                      aria-label={`${KB.kick} ${p.nickname}`}
+                      className="min-h-11 cursor-pointer border-2 border-ink bg-paper px-2 font-mono text-xs font-bold uppercase hover:bg-ink hover:text-paper"
+                    >
+                      {KB.kick}
+                    </button>
+                  )}
+                </span>
               </li>
             ))}
           </ul>

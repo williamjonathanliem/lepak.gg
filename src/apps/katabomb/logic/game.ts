@@ -63,13 +63,14 @@ export function createGame(host: NewPerson, settings: Settings = DEFAULT_SETTING
     turnCount: 0,
     matchStartedAt: 0,
     usedWords: [],
+    kicked: [],
     placements: [],
     event: null,
     seq: 0,
   };
 }
 
-export type JoinError = 'full';
+export type JoinError = 'full' | 'kicked';
 
 /**
  * Someone joins or comes back. A returning id keeps their seat (refresh mid-match).
@@ -79,6 +80,7 @@ export function joinGame(
   state: GameState,
   person: NewPerson,
 ): { state: GameState; error?: JoinError } {
+  if (state.kicked.includes(person.id)) return { state, error: 'kicked' };
   const existing = state.players.find((p) => p.id === person.id);
   if (existing) {
     const players = state.players.map((p) =>
@@ -369,6 +371,18 @@ export function leaveGame(state: GameState, playerId: string, env: Env): GameSta
   }
   if (alivePlayers(marked).length <= 1) return finish(marked);
   return emit(marked, { kind: 'left', playerId });
+}
+
+/** Host removes someone. Same as leaving, and they can't come back to this room. */
+export function kickPlayer(state: GameState, playerId: string, env: Env): GameState {
+  if (playerId === state.hostId || !state.players.some((p) => p.id === playerId)) return state;
+  const next = leaveGame(state, playerId, env);
+  return { ...next, kicked: [...next.kicked, playerId] };
+}
+
+/** The host is leaving: the room closes for everyone. */
+export function closeRoom(state: GameState): GameState {
+  return emit({ ...state, closed: true, turn: null }, null);
 }
 
 /** Results screen to lobby, same room and people. */

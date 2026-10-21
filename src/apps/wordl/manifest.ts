@@ -1,15 +1,14 @@
 import type { AppManifest } from '../types';
 
-// Working name. "*" names are placeholders for the game they're inspired by; rename before launch.
 export const wordl: AppManifest = {
   id: 'wordl',
   number: '011',
-  name: 'Wordl*',
-  tagline: 'Guess the hidden 5 letter word in 6 tries.',
+  name: 'Letterlock',
+  tagline: 'Guess the hidden 5 letter word in 6 tries. Inspired by NYT’s Wordle.',
   category: 'games',
   accent: '#7ee081',
   status: 'beta',
   multiplayer: false,
-  route: '/wordl',
+  route: '/letterlock',
   load: () => import('./index'),
 };

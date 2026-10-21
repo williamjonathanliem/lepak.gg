@@ -16,6 +16,8 @@ import {
 } from './net/pagesApi';
 import { Prose } from './ui/Prose';
 import { Shell } from './ui/Shell';
+import { CollabTextarea } from './ui/CollabTextarea';
+import { getNickname } from '../../lib/identity';
 
 // Published pages: /n/:slug (view) and /n/:slug/edit (edit, needs the owner's browser or the edit key).
 
@@ -327,11 +329,14 @@ function EditPage() {
               <label htmlFor="ed-body" className="font-mono text-xs uppercase">
                 {LP.bodyLabel}
               </label>
-              <textarea
+              <CollabTextarea
                 id="ed-body"
-                value={b}
+                slug={slug}
+                editKey={key}
+                seed={page.body ?? ''}
+                nickname={getNickname() ?? 'someone'}
                 maxLength={MAX_NOTE_CHARS}
-                onChange={(e) => setBody(e.target.value)}
+                onChange={setBody}
                 className="min-h-[50vh] resize-y border-3 border-ink bg-paper p-3 font-mono text-[15px] leading-relaxed"
               />
             </div>

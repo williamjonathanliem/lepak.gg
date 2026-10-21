@@ -28,6 +28,30 @@ interface Firebase {
 
 let ready: Promise<Firebase> | null = null;
 
+/** reCAPTCHA site key for App Check (public). Without it, App Check is simply off. */
+const recaptchaKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+
+/**
+ * App Check: every request to Firebase carries a short-lived token proving it came from
+ * our real site in a real browser (checked invisibly by reCAPTCHA), so bots and scripts
+ * that copy our public config get turned away once enforcement is on in the console.
+ * Must start before anything else talks to Firebase.
+ */
+async function startAppCheck(app: FirebaseApp) {
+  if (!recaptchaKey) return;
+  if (import.meta.env.DEV) {
+    // On localhost reCAPTCHA can't vouch for us. This prints a debug token in the console
+    // once; add it in Firebase console > App Check > Apps > Manage debug tokens.
+    (self as unknown as { FIREBASE_APPCHECK_DEBUG_TOKEN?: boolean }).FIREBASE_APPCHECK_DEBUG_TOKEN =
+      true;
+  }
+  const { initializeAppCheck, ReCaptchaEnterpriseProvider } = await import('firebase/app-check');
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(recaptchaKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
 /**
  * Starts Firebase and signs this browser in as an invisible guest (anonymous auth).
  * The uid stays the same on this browser until its site data is cleared.
@@ -42,6 +66,7 @@ export function getFirebase(): Promise<Firebase> {
       import('firebase/database'),
     ]);
     const app = initializeApp(config);
+    await startAppCheck(app);
     const auth = authMod.getAuth(app);
     await auth.authStateReady();
     const user = auth.currentUser ?? (await authMod.signInAnonymously(auth)).user;

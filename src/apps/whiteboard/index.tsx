@@ -3,8 +3,8 @@ import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-rou
 import { Button } from '../../components/Button';
 import { Input, InputError } from '../../components/Input';
 import { firebaseEnabled } from '../../lib/firebase';
-import { SITE } from '../../lib/site';
 import { generateRoomCode, isValidRoomCode, normalizeRoomCode } from '../../lib/roomCode';
+import { AppHeader } from '../../components/AppHeader';
 
 // Whiteboard: /whiteboard (home), /whiteboard/solo, /whiteboard/r/:code (shared, live).
 // The drawing library is big, so it only loads once you open a board.
@@ -61,15 +61,7 @@ function Home() {
   return (
     <div className="min-h-dvh">
       <title>Whiteboard · Lepak.gg</title>
-      <header className="flex h-12 items-stretch border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
-      </header>
+      <AppHeader app={{ name: 'Whiteboard', to: '/whiteboard', accent: '#b9a2ff' }} />
       <main className="mx-auto flex max-w-4xl flex-col gap-8 px-gutter py-[clamp(32px,6vw,64px)]">
         <div>
           <h1 className="heading-lg m-0">Whiteboard.</h1>

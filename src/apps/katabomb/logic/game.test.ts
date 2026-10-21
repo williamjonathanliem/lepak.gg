@@ -5,6 +5,7 @@ import {
   createGame,
   fuseSeconds,
   joinGame,
+  kickPlayer,
   leaveGame,
   nextAlive,
   pickNewHost,
@@ -246,4 +247,22 @@ describe('host', () => {
 
 afterEach(() => {
   clock += 1;
+});
+
+describe('kicking', () => {
+  it('removes the player and stops them joining again', () => {
+    let s = kickPlayer(lobbyWith('a', 'b', 'c'), 'b', env());
+    expect(s.players.map((p) => p.id)).toEqual(['a', 'c']);
+    const again = joinGame(s, { id: 'b', nickname: 'b' });
+    expect(again.error).toBe('kicked');
+    expect(again.state.players).toHaveLength(2);
+    s = kickPlayer(s, 'a', env());
+    expect(s.players.map((p) => p.id)).toEqual(['a', 'c']); // host can't kick themself
+  });
+
+  it('mid-match, kicking the last opponent ends the match', () => {
+    let s = startGame(lobbyWith('a', 'b'), env());
+    s = kickPlayer(s, 'b', env());
+    expect(s.phase).toBe('results');
+  });
 });

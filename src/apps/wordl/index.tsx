@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router';
 import { Confetti } from '../../components/Confetti';
-import { SITE } from '../../lib/site';
 import { ANSWERS } from './logic/answers';
 import {
   loadDayGuesses,
@@ -27,6 +25,7 @@ import {
 import { Board } from './ui/Board';
 import { Keyboard } from './ui/Keyboard';
 import { ResultPanel } from './ui/ResultPanel';
+import { AppHeader } from '../../components/AppHeader';
 
 type Mode = 'daily' | 'practice';
 
@@ -42,7 +41,6 @@ function randomAnswer(avoid?: string): string {
   return w;
 }
 
-// Working name "Wordl*": placeholder until we pick our own name.
 export default function Wordl() {
   // Fixed for this visit; a new day's puzzle shows up on the next page load.
   const [day] = useState(todayNumber);
@@ -134,19 +132,12 @@ export default function Wordl() {
     setMode('practice');
   }
 
-  const label = mode === 'daily' ? `Wordl* #${day}` : 'Wordl* practice';
+  const label = mode === 'daily' ? `Letterlock #${day}` : 'Letterlock practice';
 
   return (
     <div className="flex h-dvh flex-col overflow-hidden bg-paper text-ink">
-      <title>Wordl* · Lepak.gg</title>
-      <header className="flex h-12 shrink-0 items-stretch justify-between border-b-3 border-ink">
-        <Link
-          to="/hub"
-          className="flex items-center gap-2 px-gutter font-mono text-base font-bold no-underline"
-        >
-          <span aria-hidden="true" className="inline-block size-3.5 bg-ink" />
-          {SITE.wordmark}
-        </Link>
+      <title>Letterlock · Lepak.gg</title>
+      <AppHeader app={{ name: 'Letterlock', to: '/letterlock', accent: '#7ee081' }}>
         <div className="flex items-stretch font-mono text-sm font-bold uppercase" role="tablist">
           {(['daily', 'practice'] as Mode[]).map((m) => (
             <button
@@ -168,7 +159,7 @@ export default function Wordl() {
             Stats
           </button>
         </div>
-      </header>
+      </AppHeader>
 
       <main className="relative flex min-h-0 flex-1 flex-col items-center justify-between gap-3 px-3 py-3">
         <h1 className="sr-only">{label}</h1>

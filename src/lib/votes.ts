@@ -41,10 +41,11 @@ export function watchVotes(cb: (snap: VoteSnapshot) => void): () => void {
 }
 
 export async function setVote(appId: string, on: boolean): Promise<void> {
-  const [{ db, uid }, { ref, set, remove }] = await Promise.all([
+  const [{ db, uid }, { ref, set, remove, serverTimestamp }] = await Promise.all([
     getFirebase(),
     import('firebase/database'),
   ]);
   const r = ref(db, `votes/${appId}/${uid}`);
-  await (on ? set(r, true) : remove(r));
+  // The vote stores when it was cast, so the nightly clean-up can drop it after 30 days.
+  await (on ? set(r, serverTimestamp()) : remove(r));
 }

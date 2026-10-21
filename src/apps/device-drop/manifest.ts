@@ -7,6 +7,8 @@ export const deviceDrop: AppManifest = {
   tagline: 'Phone to laptop, no cable, no WhatsApp-to-self.',
   category: 'tools',
   accent: '#4fd1e8',
-  status: 'planned',
+  status: 'beta',
   multiplayer: true,
+  route: '/drop',
+  load: () => import('./index'),
 };

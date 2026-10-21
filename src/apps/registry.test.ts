@@ -20,13 +20,24 @@ describe('app registry', () => {
     expect(ROUTED_APPS.map((a) => a.id)).toEqual([
       'katabomb',
       'notes',
+      'device-drop',
+      'ai-notes',
       'wordl',
       'connections',
+      'strands',
+      'spelling-bee',
+      'mini-crossword',
+      'letter-boxed',
+      'tiles',
+      'pips',
+      'sudoku',
       'whiteboard',
       'trivia',
       'cite',
       'toolbox',
       'bingo',
+      'watch',
+      'ai-slides',
     ]);
   });
 });

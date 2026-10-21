@@ -1,13 +1,14 @@
 import type { AppManifest } from '../types';
 
-// Working name. "*" names are placeholders for the game they're inspired by; rename before launch.
 export const miniCrossword: AppManifest = {
   id: 'mini-crossword',
   number: '015',
-  name: 'Mini Crossw*rd',
-  tagline: 'A tiny crossword you can finish before class starts.',
+  name: 'Pocket Crossword',
+  tagline: 'A tiny crossword you can finish before class starts. Inspired by NYT’s Mini Crossword.',
   category: 'games',
   accent: '#ff8fd0',
-  status: 'planned',
+  status: 'beta',
   multiplayer: false,
+  route: '/pocket-crossword',
+  load: () => import('./index'),
 };

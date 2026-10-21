@@ -221,6 +221,13 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Jump links land below the sticky top bar. */
+    scroll-padding-top: 72px;
+  }
+  @media (max-width: 639px) {
+    html {
+      scroll-padding-top: 112px;
+    }
   }
   body {
     margin: 0;
@@ -408,6 +415,71 @@
 .lp-prose hr {
   border: 0;
   border-top: 3px solid var(--color-ink);
+}
+
+/* ---------- Calm inside ----------
+   The landing page and hub keep the loud brutalist look. Inside apps (the router wraps them
+   in .calm) the same pieces are turned down, so a long game or study session isn't tiring:
+   thinner borders, smaller shadows, sentence-case buttons, smaller page titles.
+   Unlayered on purpose, so it wins over the Tailwind utilities. */
+.calm .border-3 {
+  border-width: 2px;
+}
+.calm .border-t-3 {
+  border-top-width: 2px;
+}
+.calm .border-b-3 {
+  border-bottom-width: 2px;
+}
+.calm .border-l-3 {
+  border-left-width: 2px;
+}
+.calm .border-r-3 {
+  border-right-width: 2px;
+}
+.calm .shadow-hard {
+  box-shadow: 3px 3px 0 var(--color-ink);
+}
+.calm .push:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--push-shadow, var(--color-ink));
+}
+.calm .push:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--push-shadow, var(--color-ink));
+}
+.calm :is(button, a, [role='tab'], [role='radio']).uppercase {
+  text-transform: none;
+}
+.calm .heading-lg {
+  font-size: clamp(32px, 4.5vw, 56px);
+  letter-spacing: -0.03em;
+}
+
+/* The app menu: a native <dialog> that slides in from the right. */
+dialog.menu {
+  margin: 0 0 0 auto;
+  max-height: none;
+  height: 100dvh;
+  width: min(380px, 100vw);
+  max-width: 100vw;
+  border: 0;
+  border-left: 3px solid var(--color-ink);
+  padding: 0;
+  background: var(--color-paper);
+  color: var(--color-ink);
+}
+dialog.menu[open] {
+  animation: menu-in 0.18s ease-out;
+}
+dialog.menu::backdrop {
+  background: rgb(0 0 0 / 0.45);
+}
+@keyframes menu-in {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
 }
 
 /* Doodles draw themselves in once. Without animation they simply show finished. */

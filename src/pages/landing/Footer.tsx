@@ -1,5 +1,6 @@
 import { Doodle, HandNote } from '../../components/Doodle';
 import { FOOTER } from '../../copy/landing';
+import { Link } from 'react-router';
 import { repoHref } from '../../lib/repo';
 
 const LINK = 'inline-flex min-h-11 min-w-11 items-center';
@@ -19,6 +20,12 @@ export function Footer() {
           <a className={LINK} href={repoHref('/blob/main/CONTRIBUTING.md')}>
             {FOOTER.links.contribute}
           </a>
+          <Link className={LINK} to="/privacy">
+            {FOOTER.links.privacy}
+          </Link>
+          <Link className={LINK} to="/terms">
+            {FOOTER.links.terms}
+          </Link>
           <a className={LINK} href="#top">
             {FOOTER.links.top}
           </a>

@@ -6,7 +6,7 @@
 
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
-import { parseMeta, type PageMeta } from '../../src/apps/cite/logic/meta';
+import { parseMeta, type PageMeta } from '../../src/apps/cite/logic/meta.js';
 
 const MAX_BYTES = 1_500_000;
 const MAX_REDIRECTS = 3;

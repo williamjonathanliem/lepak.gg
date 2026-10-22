@@ -1,10 +1,13 @@
+// Server files run as ES modules on Vercel: relative imports need the .js ending
+// (e.g. './ai.js'), even though the file is .ts. Without it every function crashes.
+//
 // Shared Genkit + Gemini setup for the AI features (AI Notes, AI Slides).
 // Env (server only, never VITE_): GEMINI_API_KEY, optional GEMINI_MODEL and
 // GEMINI_FALLBACK_MODELS (comma-separated).
 
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit } from 'genkit';
-import { allowRequest, fromOurSite } from './fetchMeta';
+import { allowRequest, fromOurSite } from './fetchMeta.js';
 
 // Override with GEMINI_MODEL when Google retires this one (the error message names the new one).
 export const MODEL = process.env.GEMINI_MODEL ?? 'gemini-3.8-flash';

@@ -7,7 +7,7 @@
 // Used by /api/ai-slides (Vercel) and the dev server (vite.config.ts).
 
 import { z } from 'genkit';
-import { SAFETY_NOTE, aiErrorResponse, generateWithFallback, getAi, guardAiRequest } from './ai';
+import { SAFETY_NOTE, aiErrorResponse, generateWithFallback, getAi, guardAiRequest } from './ai.js';
 
 const PER_MINUTE = 10; // outline + deck + a few rewrites
 const MAX_MATERIAL = 40_000;

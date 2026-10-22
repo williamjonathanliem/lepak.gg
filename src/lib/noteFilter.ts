@@ -1,4 +1,4 @@
-import { hasProfanity } from './profanity';
+import { hasProfanity } from './profanity.js';
 
 // Quick checks for anything people post publicly (wall notes). Runs in the browser for
 // instant feedback and again on the server (api/_lib/wallPost.ts), where it can't be

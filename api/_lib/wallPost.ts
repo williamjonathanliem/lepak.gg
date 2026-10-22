@@ -10,9 +10,9 @@
 
 import { ServerValue } from 'firebase-admin/database';
 import { z } from 'genkit';
-import { filterText } from '../../src/lib/noteFilter';
-import { SAFETY_NOTE, generateWithFallback, guardAiRequest, isBusyError } from './ai';
-import { adminConfigured, adminDb, userFrom } from './firebaseAdmin';
+import { filterText } from '../../src/lib/noteFilter.js';
+import { SAFETY_NOTE, generateWithFallback, guardAiRequest, isBusyError } from './ai.js';
+import { adminConfigured, adminDb, userFrom } from './firebaseAdmin.js';
 
 const NOTES_PER_MINUTE = 6; // per IP; the per-guest limit (1 a minute) is checked below
 const POST_GAP_MS = 60_000;

@@ -10,7 +10,7 @@
 // Shared Gemini setup and safety checks: ./ai.ts.
 
 import { z } from 'genkit';
-import { SAFETY_NOTE, aiErrorResponse, generateWithFallback, getAi, guardAiRequest } from './ai';
+import { SAFETY_NOTE, aiErrorResponse, generateWithFallback, getAi, guardAiRequest } from './ai.js';
 
 export const MAX_TEXT_CHARS = 60_000;
 export const MAX_PDF_BYTES = 3 * 1024 * 1024; // base64 grows it to ~4 MB, under Vercel's limit

@@ -264,7 +264,7 @@ Still holds: don't name things after other products' trademarks (e.g. not "GeoGu
 ## 10. Open questions (ask, don't assume)
 
 - Final name and domain (`lepakhub.com`, `lepak.gg`, `lepakhub.app`?). Use `[DOMAIN]` until decided.
-- License: MIT or AGPL-3.0. Use `[LICENSE]` placeholder in README until decided.
+- License: decided 2026-10-23: AGPL-3.0 (LICENSE file).
 - GitHub org/repo URL: use `[REPO URL]`.
 - Room URL format (`/r/:code` vs `/wordbomb/r/:code`).
 - Max upload size for future Lepak Pages: `[MAX SIZE]`.

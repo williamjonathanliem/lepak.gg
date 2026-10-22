@@ -42,4 +42,19 @@ describe('wall notes', () => {
     expect(sortNotes(notes, 'top').map((n) => n.id)).toEqual(['old', 'mid', 'neu']);
     expect(sortNotes(notes, 'new').map((n) => n.id)).toEqual(['neu', 'mid', 'old']);
   });
+
+  it('puts pinned notes first, then the team, then the usual order', () => {
+    const notes = readNotes(
+      {
+        a: { text: 'busy', kind: 'idea', nick: 'ab', updatedAt: 9 },
+        t: { text: 'team', kind: 'idea', nick: 'Lepak team', uid: 'lepak-team', updatedAt: 1 },
+        p: { text: 'pin', kind: 'idea', nick: 'ab', updatedAt: 2, pinned: true },
+      },
+      { a: { x: true, y: true } },
+      null,
+      'me',
+    );
+    expect(sortNotes(notes, 'top').map((n) => n.id)).toEqual(['p', 't', 'a']);
+    expect(sortNotes(notes, 'new').map((n) => n.id)).toEqual(['p', 't', 'a']);
+  });
 });

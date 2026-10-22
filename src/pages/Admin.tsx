@@ -11,7 +11,10 @@ import {
   closeRoom,
   deleteNote,
   listRooms,
+  postTeamNote,
   resetVotes,
+  setNoteKind,
+  setPinned,
   unban,
   watchBans,
   type AdminSession,
@@ -22,13 +25,22 @@ import { Sticker } from '../components/Sticker';
 import { firebaseEnabled } from '../lib/firebase';
 import { SITE } from '../lib/site';
 import { watchVotes, type VoteSnapshot } from '../lib/votes';
-import { NOTE_COLORS, watchWall, type WallNote } from '../lib/wall';
+import {
+  NOTE_KINDS,
+  TEAM_COLOR,
+  paperOf,
+  sortNotes,
+  watchWall,
+  type NoteKind,
+  type WallNote,
+} from '../lib/wall';
 
 // /admin: not linked from anywhere, and hidden from search engines. Hiding it isn't the
 // lock though: the database rules only obey accounts listed at admins/{uid} (see
 // src/lib/admin.ts), so a stranger who finds this page can't do anything.
 
-type Tab = 'wall' | 'rooms' | 'votes';
+const TABS = ['overview', 'wall', 'rooms', 'votes'] as const;
+type Tab = (typeof TABS)[number];
 
 const BASE =
   'min-h-11 min-w-20 cursor-pointer border-3 border-ink px-3 font-mono text-xs font-bold uppercase disabled:cursor-wait disabled:opacity-50';
@@ -260,11 +272,11 @@ function NotAdmin({ uid }: { uid: string }) {
 }
 
 function Panel() {
-  const [tab, setTab] = useState<Tab>('wall');
+  const [tab, setTab] = useState<Tab>('overview');
   return (
     <>
-      <div role="tablist" className="flex w-fit border-3 border-ink">
-        {(['wall', 'rooms', 'votes'] as const).map((t) => (
+      <div role="tablist" className="flex w-fit flex-wrap border-3 border-ink">
+        {TABS.map((t) => (
           <button
             key={t}
             type="button"
@@ -277,6 +289,7 @@ function Panel() {
           </button>
         ))}
       </div>
+      {tab === 'overview' && <Overview onOpen={setTab} />}
       {tab === 'wall' && <WallAdmin />}
       {tab === 'rooms' && <RoomsAdmin />}
       {tab === 'votes' && <VotesAdmin />}
@@ -285,6 +298,63 @@ function Panel() {
         server.
       </p>
     </>
+  );
+}
+
+/** Counts at a glance, each one a shortcut to its tab. */
+function Overview({ onOpen }: { onOpen: (t: Tab) => void }) {
+  const [notes, setNotes] = useState<WallNote[] | null>(null);
+  const [bans, setBans] = useState<number | null>(null);
+  const [votes, setVotes] = useState<VoteSnapshot | null>(null);
+  const [rooms, setRooms] = useState<Record<string, number | null>>({});
+
+  useEffect(() => watchWall(setNotes, () => setNotes([])), []);
+  useEffect(() => watchBans((b) => setBans(b.length)), []);
+  useEffect(() => watchVotes(setVotes), []);
+  useEffect(() => {
+    let live = true;
+    for (const k of ROOM_KINDS) {
+      listRooms(k).then(
+        (r) => live && setRooms((all) => ({ ...all, [k.id]: r.length })),
+        () => live && setRooms((all) => ({ ...all, [k.id]: null })),
+      );
+    }
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const reported = notes?.filter((n) => n.reports > 0).length;
+  const hidden = notes?.filter((n) => n.hidden).length;
+  const totalVotes = votes ? Object.values(votes.counts).reduce((a, b) => a + b, 0) : null;
+  const card = (label: string, value: number | null | undefined, to: Tab, alert = false) => (
+    <button
+      type="button"
+      onClick={() => onOpen(to)}
+      className={`flex min-h-24 cursor-pointer flex-col items-start justify-between gap-2 border-3 border-ink p-4 text-left shadow-hard-sm ${alert && value ? 'bg-[#ff8fd0]' : 'bg-paper'}`}
+    >
+      <span className="font-mono text-xs font-bold uppercase">{label}</span>
+      <span className="text-4xl leading-none font-black">{value ?? '…'}</span>
+    </button>
+  );
+
+  return (
+    <section className="flex flex-col gap-6">
+      <h1 className="m-0 text-2xl font-black uppercase">Overview</h1>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {card('Wall notes', notes?.length, 'wall')}
+        {card('Reported', reported, 'wall', true)}
+        {card('Hidden by reports', hidden, 'wall', true)}
+        {card('Banned', bans, 'wall')}
+        {card('Votes cast', totalVotes, 'votes')}
+      </div>
+      <h2 className="m-0 text-lg font-black uppercase">Open rooms (last 100 of each)</h2>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {ROOM_KINDS.map((k) => (
+          <div key={k.id}>{card(k.label, rooms[k.id], 'rooms')}</div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -307,57 +377,170 @@ function useAction() {
   return { busy, error, run };
 }
 
+const KIND_LABEL: Record<NoteKind, string> = { idea: 'Idea', bug: 'Bug', love: 'Love it' };
+
+/** Post a note as the Lepak team: prompts, news, things to vote on. */
+function TeamNote() {
+  const [text, setText] = useState('');
+  const [kind, setKind] = useState<NoteKind>('idea');
+  const [pinned, setPinnedNote] = useState(true);
+  const { busy, error, run } = useAction();
+  const [done, setDone] = useState(false);
+  const clean = text.trim().replace(/\s+/g, ' ');
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        void run('team', async () => {
+          await postTeamNote({ text: clean, kind, color: 0, pinned });
+          setText('');
+          setDone(true);
+          setTimeout(() => setDone(false), 2000);
+        });
+      }}
+      className="flex flex-col gap-3 border-3 border-ink p-4 shadow-hard"
+      style={{ background: TEAM_COLOR }}
+    >
+      <h2 className="m-0 text-lg font-black uppercase">Post as Lepak team</h2>
+      <label htmlFor="team-text" className="sr-only">
+        Note
+      </label>
+      <textarea
+        id="team-text"
+        value={text}
+        maxLength={140}
+        rows={3}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="New game coming: vote for what's next!"
+        className="border-3 border-ink bg-paper p-3 text-base font-bold"
+      />
+      <div className="flex flex-wrap items-center gap-2">
+        {NOTE_KINDS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={kind === k}
+            onClick={() => setKind(k)}
+            className={`min-h-11 cursor-pointer border-3 border-ink px-3 font-mono text-xs font-bold uppercase ${kind === k ? 'bg-ink text-paper' : 'bg-paper text-ink'}`}
+          >
+            {KIND_LABEL[k]}
+          </button>
+        ))}
+        <label className="ml-auto flex min-h-11 cursor-pointer items-center gap-2 font-mono text-sm">
+          <input
+            type="checkbox"
+            checked={pinned}
+            onChange={(e) => setPinnedNote(e.target.checked)}
+            className="size-5"
+          />
+          Pin to the top
+        </label>
+      </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="submit"
+          disabled={busy !== null || clean.length < 3}
+          className={`${DANGER} push shadow-hard-sm`}
+        >
+          {busy ? 'Posting...' : 'Post note'}
+        </button>
+        <span className="font-mono text-xs">{clean.length}/140</span>
+        {done && <span className="font-mono text-sm font-bold">✓ Posted</span>}
+        {error && <span className="font-mono text-sm font-bold">{error}</span>}
+      </div>
+      <p className="m-0 font-mono text-xs">
+        Prints on orange paper (only the team gets orange) with a TEAM badge. Skips the AI check
+        (it’s you). The nightly job also keeps at least 3 notes up.
+      </p>
+    </form>
+  );
+}
+
 function WallAdmin() {
   const [notes, setNotes] = useState<WallNote[] | null>(null);
   const [bans, setBans] = useState<{ uid: string; at: number }[]>([]);
-  const [onlyFlagged, setOnlyFlagged] = useState(true);
+  const [show, setShow] = useState<'all' | 'reported' | 'team'>('all');
   const { busy, error, run } = useAction();
 
   useEffect(() => watchWall(setNotes, () => setNotes([])), []);
   useEffect(() => watchBans(setBans), []);
 
-  const flagged = (notes ?? []).filter((n) => n.reports > 0);
-  const list = [...(onlyFlagged ? flagged : (notes ?? []))].sort(
-    (a, b) => b.reports - a.reports || b.at - a.at,
-  );
+  const all = notes ?? [];
+  const flagged = all.filter((n) => n.reports > 0);
+  const shown = show === 'reported' ? flagged : show === 'team' ? all.filter((n) => n.team) : all;
+  const list =
+    show === 'reported'
+      ? [...shown].sort((a, b) => b.reports - a.reports || b.at - a.at)
+      : sortNotes(shown, 'new');
 
   return (
-    <section className="flex flex-col gap-4">
+    <section className="flex flex-col gap-5">
+      <TeamNote />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="m-0 text-2xl font-black uppercase">
           Wall: {notes?.length ?? '...'} notes, {flagged.length} reported
         </h1>
-        <label className="flex min-h-11 items-center gap-2 font-mono text-sm">
-          <input
-            type="checkbox"
-            checked={onlyFlagged}
-            onChange={(e) => setOnlyFlagged(e.target.checked)}
-            className="size-5"
-          />
-          Reported only
-        </label>
+        <div role="group" aria-label="Show" className="flex border-3 border-ink">
+          {(['all', 'reported', 'team'] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              aria-pressed={show === v}
+              onClick={() => setShow(v)}
+              className={`min-h-11 cursor-pointer border-0 px-3 font-mono text-xs font-bold uppercase not-last:border-r-3 not-last:border-ink ${show === v ? 'bg-ink text-paper' : 'bg-paper text-ink'}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
       </div>
       {error && <p className="m-0 font-mono text-sm font-bold">{error}</p>}
       {notes && list.length === 0 && (
-        <p className="m-0 font-mono text-sm text-mute">Nothing to review.</p>
+        <p className="m-0 font-mono text-sm text-mute">Nothing here.</p>
       )}
       <ul className="m-0 flex list-none flex-col gap-3 p-0">
         {list.map((n) => (
           <li
             key={n.id}
-            className="flex flex-wrap items-start gap-4 border-3 border-ink p-3"
-            style={{ borderLeft: `14px solid ${NOTE_COLORS[n.color]}` }}
+            className="flex flex-col gap-3 border-3 border-ink p-3"
+            style={{ borderLeft: `14px solid ${paperOf(n)}` }}
           >
-            <div className="min-w-0 flex-[1_1_280px]">
-              <p className="m-0 font-bold break-words">{n.text}</p>
+            <div className="min-w-0">
+              <p className="m-0 font-bold break-words">
+                {n.pinned && '📌 '}
+                {n.text}
+              </p>
               <p className="m-0 mt-1 font-mono text-xs text-mute">
-                {n.kind} · by {n.nick} · {ago(n.at)} · +{n.plus} ·{' '}
-                <b className={n.reports ? 'text-ink' : ''}>{n.reports} reports</b>
+                by {n.team ? <b className="text-ink">Lepak team</b> : n.nick} · {ago(n.at)} · +
+                {n.plus} · <b className={n.reports ? 'text-ink' : ''}>{n.reports} reports</b>
                 {n.hidden && ' · HIDDEN'}
-                {n.approved && ' · approved'}
+                {n.approved && ' · kept'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div role="group" aria-label="Kind" className="flex border-3 border-ink">
+                {NOTE_KINDS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    disabled={busy !== null}
+                    aria-pressed={n.kind === k}
+                    onClick={() => n.kind !== k && void run(n.id, () => setNoteKind(n.id, k))}
+                    className={`min-h-10 cursor-pointer border-0 px-2.5 font-mono text-xs font-bold uppercase not-last:border-r-2 not-last:border-ink ${n.kind === k ? 'bg-ink text-paper' : 'bg-paper text-ink'}`}
+                  >
+                    {KIND_LABEL[k]}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                disabled={busy !== null}
+                className={BTN}
+                onClick={() => void run(n.id, () => setPinned(n.id, !n.pinned))}
+              >
+                {n.pinned ? 'Unpin' : 'Pin'}
+              </button>
               {n.reports > 0 && (
                 <button
                   type="button"
@@ -372,28 +555,32 @@ function WallAdmin() {
                 type="button"
                 disabled={busy !== null}
                 className={BTN}
-                onClick={() => void run(n.id, () => deleteNote(n.id))}
+                onClick={() =>
+                  void run(n.id, () => deleteNote(n.id), `Delete "${n.text.slice(0, 40)}"?`)
+                }
               >
                 Delete
               </button>
-              <button
-                type="button"
-                disabled={busy !== null || !n.uid}
-                className={DANGER}
-                onClick={() =>
-                  void run(
-                    n.id,
-                    () =>
-                      banAuthor(
-                        n.uid,
-                        (notes ?? []).filter((x) => x.uid === n.uid).map((x) => x.id),
-                      ),
-                    `Ban ${n.nick} for 30 days and delete all their notes?`,
-                  )
-                }
-              >
-                Ban author
-              </button>
+              {!n.team && (
+                <button
+                  type="button"
+                  disabled={busy !== null || !n.uid}
+                  className={DANGER}
+                  onClick={() =>
+                    void run(
+                      n.id,
+                      () =>
+                        banAuthor(
+                          n.uid,
+                          all.filter((x) => x.uid === n.uid).map((x) => x.id),
+                        ),
+                      `Ban ${n.nick} for 30 days and delete all their notes?`,
+                    )
+                  }
+                >
+                  Ban author
+                </button>
+              )}
             </div>
           </li>
         ))}

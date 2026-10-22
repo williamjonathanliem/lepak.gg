@@ -15,6 +15,9 @@ import { filterText } from './noteFilter';
 
 export const wallEnabled = firebaseEnabled;
 
+/** Who team notes are posted as (scripts/cleanup keeps at least 3 notes on the wall). */
+export const TEAM_UID = 'lepak-team';
+
 export const NOTE_MIN = 3;
 export const NOTE_MAX = 140;
 /** Reports from different people that hide a note until an admin looks at it. */
@@ -23,6 +26,10 @@ export const NOTE_KINDS = ['idea', 'bug', 'love'] as const;
 export type NoteKind = (typeof NOTE_KINDS)[number];
 /** Post-it colours. Notes store the index so the palette can change later. */
 export const NOTE_COLORS = ['#ffd23f', '#ff8fd0', '#7ee081', '#4fd1e8'] as const;
+/** Team notes are always on orange paper, a colour people can't pick, so they stand out. */
+export const TEAM_COLOR = '#ff9f5a';
+export const paperOf = (n: { team: boolean; color: number }) =>
+  n.team ? TEAM_COLOR : NOTE_COLORS[n.color];
 
 export interface WallNote {
   id: string;
@@ -39,6 +46,10 @@ export interface WallNote {
   /** Reported enough to hide it from everyone until an admin decides. */
   hidden: boolean;
   mine: boolean;
+  /** Posted as the Lepak team (prompts and news, not reviews). */
+  team: boolean;
+  /** Pinned by an admin: always shown first. */
+  pinned: boolean;
   plussed: boolean;
   reported: boolean;
 }
@@ -71,9 +82,12 @@ export function checkNote(
 
 export type WallSort = 'top' | 'new';
 
-/** Most +1s first (newest breaks ties), or just newest first. */
+/** Pinned notes first, then the team's, then most +1s (newest breaks ties) or newest. */
 export function sortNotes(notes: readonly WallNote[], by: WallSort): WallNote[] {
-  return [...notes].sort((a, b) => (by === 'top' ? b.plus - a.plus : 0) || b.at - a.at);
+  const lead = (n: WallNote) => (n.pinned ? 2 : 0) + (n.team ? 1 : 0);
+  return [...notes].sort(
+    (a, b) => lead(b) - lead(a) || (by === 'top' ? b.plus - a.plus : 0) || b.at - a.at,
+  );
 }
 
 interface RawNote {
@@ -84,6 +98,7 @@ interface RawNote {
   uid?: unknown;
   updatedAt?: unknown;
   approved?: unknown;
+  pinned?: unknown;
 }
 
 type Votes = Record<string, Record<string, unknown>> | null;
@@ -116,6 +131,8 @@ export function readNotes(
       approved,
       hidden: !approved && reportCount >= HIDE_AFTER_REPORTS,
       mine: n.uid === uid,
+      team: n.uid === TEAM_UID,
+      pinned: n.pinned === true,
       plussed: uid in voters,
       reported: uid in reporters,
     });

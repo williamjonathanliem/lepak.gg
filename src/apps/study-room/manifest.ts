@@ -7,6 +7,8 @@ export const studyRoom: AppManifest = {
   tagline: 'Shared focus timer. Study apart, feel together.',
   category: 'study',
   accent: '#b9a2ff',
-  status: 'planned',
+  status: 'beta',
   multiplayer: true,
+  route: '/study',
+  load: () => import('./index'),
 };

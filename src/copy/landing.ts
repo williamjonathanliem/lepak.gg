@@ -6,6 +6,7 @@ import type { NicknameError } from '../lib/identity';
 export const NAV = {
   index: 'Index',
   wall: 'Wall',
+  class: 'Class',
   source: 'Source',
   enter: '[ Enter ]',
 };
@@ -53,15 +54,74 @@ export const INDEX = {
 
 export const DEMO = {
   label: 'Live now',
-  heading: ['Jom,', 'try it.'],
-  body: 'Games, a shared whiteboard, watch parties, file drops and Lepak Pages are live. No signup, just a nickname. Send the code to your group chat and go.',
-  games: [
-    { label: 'KataBomb', to: '/katabomb', color: '#ff7a45' },
-    { label: 'Bingo', to: '/bingo', color: '#ffd23f' },
-    { label: 'Watch Together', to: '/watch', color: '#ff8fd0' },
-    { label: 'Device Drop', to: '/drop', color: '#4fd1e8' },
-    { label: 'Whiteboard', to: '/whiteboard', color: '#b9a2ff' },
-    { label: 'Lepak Pages', to: '/pages', color: '#7ee081' },
+  footnote: 'No signup. Pick a nickname, send the code to your group chat, go.',
+  tabs: [
+    {
+      id: 'play',
+      tab: 'Play',
+      heading: ['Jom,', 'play.'],
+      body: 'Party games for the group chat and the whole class. Type fast in KataBomb, call numbers in Bingo, or turn lecture slides into a live quiz.',
+      links: [
+        { label: 'KataBomb', to: '/katabomb', color: '#ff7a45' },
+        { label: 'Bingo', to: '/bingo', color: '#ffd23f' },
+        { label: 'Notes → Game', to: '/notes-game', color: '#ff8fd0' },
+      ],
+    },
+    {
+      id: 'study',
+      tab: 'Study',
+      heading: ['Study', 'smarter.'],
+      body: 'Drop your slides into AI Notes. Get notes, flashcards that come back right before you forget, and quizzes with an exam mode. Or focus together in a Study Room.',
+      links: [
+        { label: 'AI Notes', to: '/ai-notes', color: '#ffd23f' },
+        { label: 'AI Slides', to: '/ai-slides', color: '#b9a2ff' },
+        { label: 'Study Room', to: '/study', color: '#4fd1e8' },
+      ],
+    },
+    {
+      id: 'hangout',
+      tab: 'Hang out',
+      heading: ['Makan,', 'then split.'],
+      body: 'Snap the receipt, tap who had what, send it to WhatsApp. Spin the wheel for “makan mana?”, then watch something together.',
+      links: [
+        { label: 'Makan Split', to: '/split', color: '#ffb86b' },
+        { label: 'Spin the Wheel', to: '/wheel', color: '#b9a2ff' },
+        { label: 'Watch Together', to: '/watch', color: '#ff8fd0' },
+      ],
+    },
+  ],
+} as const;
+
+export const CLASS = {
+  label: 'For lecturers',
+  sticker: 'Class mode',
+  heading: ['Bring the', 'whole class.'],
+  body: 'Put it on the projector, students join on their phones with a 4-letter code. No student accounts, no app to install, nothing to pay.',
+  apps: [
+    {
+      title: 'Live quiz from your slides',
+      blurb: 'Drop your lecture PDF. AI writes the questions, everyone answers on their phone.',
+      to: '/notes-game',
+      color: '#ff8fd0',
+    },
+    {
+      title: 'Revision bingo',
+      blurb: 'Your key terms on everyone’s card. You call, they mark, first line wins.',
+      to: '/bingo',
+      color: '#ffd23f',
+    },
+    {
+      title: 'One deadline board',
+      blurb: 'Add due dates once. The class sees countdowns and adds them to their calendars.',
+      to: '/deadlines',
+      color: '#7ee081',
+    },
+    {
+      title: 'Focus sessions',
+      blurb: 'A shared Pomodoro timer for tutorials and study clubs.',
+      to: '/study',
+      color: '#4fd1e8',
+    },
   ],
 };
 
@@ -116,6 +176,8 @@ export const WALL = {
   plus: '+1',
   plusLabel: (n: number, on: boolean) => `${on ? 'Remove your +1' : 'Plus one this'}. ${n} so far.`,
   remove: 'Take down',
+  team: 'Team',
+  pinned: 'Pinned',
   report: 'Report',
   reported: 'Reported',
   empty: 'Nothing here yet. Be the first to stick a note.',
@@ -125,26 +187,10 @@ export const WALL = {
   showLess: 'Show fewer',
 };
 
-export const STEPS = [
-  {
-    title: 'Pick a nickname',
-    body: 'No email, no password. Just a name your friends know.',
-  },
-  {
-    title: 'Open an app',
-    body: 'A party game, a whiteboard, a watch party, a file drop. All free, all in one place.',
-  },
-  {
-    title: 'Send the code',
-    body: 'Four letters in the group chat. Everyone is in.',
-    chat: { from: 'aiman', text: 'jom main, code KJRW' },
-  },
-];
-
 export const SOURCE = {
   label: 'Source',
   heading: ['Built by students.', 'Forkable by anyone.'],
-  body: 'Every app is one folder. Got an idea? Build it and open a pull request.',
+  body: 'Every app is one folder. Got an idea? Build it and open a pull request. AGPL-3.0: fork it freely, just keep your copy open too.',
   github: 'View on GitHub ↗',
   note: 'fuelled by kopi ais',
 };

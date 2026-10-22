@@ -7,6 +7,8 @@ export const deadlines: AppManifest = {
   tagline: 'Class rep adds it once. The whole class sees the countdown.',
   category: 'study',
   accent: '#ff8fd0',
-  status: 'planned',
+  status: 'beta',
   multiplayer: true,
+  route: '/deadlines',
+  load: () => import('./index'),
 };

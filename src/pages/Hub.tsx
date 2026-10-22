@@ -8,7 +8,7 @@ import { AppHeader } from '../components/AppHeader';
 import { InputError } from '../components/Input';
 import { HUB } from '../copy/hub';
 import { NICKNAME_ERRORS } from '../copy/landing';
-import { dailyStatus, recentApps, type DailyStatus } from '../lib/activity';
+import { dailyStatus, flashcardsDue, recentApps, type DailyStatus } from '../lib/activity';
 import { firebaseEnabled } from '../lib/firebase';
 import { findRoom, type RoomMatch } from '../lib/findRoom';
 import { getNickname, saveNickname } from '../lib/identity';
@@ -31,6 +31,7 @@ export default function Hub() {
   const [nickname, setNickname] = useState(getNickname);
   const [day] = useState(today);
   const [recent] = useState(recentApps);
+  const [cardsDue] = useState(() => flashcardsDue(Date.now()));
   if (!nickname) return <Navigate to="/#nickname" replace />;
 
   const daily = dailyGames();
@@ -81,6 +82,15 @@ export default function Hub() {
                   />
                 ))}
               </div>
+              {cardsDue[0] && (
+                <Link
+                  to="/ai-notes"
+                  state={{ openDraft: cardsDue[0].draftId }}
+                  className="mt-3 inline-flex min-h-11 w-fit items-center gap-2 border-2 border-ink bg-[#7ee081] px-3 font-mono text-sm font-bold text-ink no-underline"
+                >
+                  {HUB.cardsDue(cardsDue[0].due, cardsDue[0].title)} →
+                </Link>
+              )}
               {lastUsed.length > 0 && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   <span className="font-mono text-xs text-paper/60 uppercase">{HUB.jumpBack}</span>

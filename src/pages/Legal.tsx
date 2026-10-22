@@ -71,6 +71,24 @@ export function Privacy() {
               <td>1 day after the room was last used</td>
             </tr>
             <tr>
+              <td>
+                Study Room and Notes → Game: nickname, what you’re working on, quiz answers and
+                scores
+              </td>
+              <td>To run the room</td>
+              <td>1 day after the room was last used</td>
+            </tr>
+            <tr>
+              <td>Free-Time Finder: nickname and the hours you marked free</td>
+              <td>To find a time that suits everyone</td>
+              <td>14 days after the last change</td>
+            </tr>
+            <tr>
+              <td>Deadlines boards: board name and the deadlines added</td>
+              <td>So the class sees the same due dates</td>
+              <td>30 days after the last change and the last due date</td>
+            </tr>
+            <tr>
               <td>Shared whiteboards: drawings and pictures you add</td>
               <td>So everyone sees the same board</td>
               <td>14 days after the last change</td>
@@ -132,9 +150,9 @@ export function Privacy() {
         <li>
           <b>Google Gemini:</b> AI Notes and AI Slides send the file or text you choose to Gemini to
           write the notes or slides. Notes for the wall are sent with your nickname so Gemini can
-          check they're kind before they go up. We don't keep what's sent for checking. Google may
-          use what's sent through its free tier to improve its products, so don't upload anything
-          private.
+          check they're kind before they go up, and Makan Split sends a receipt photo you choose so
+          Gemini can read the items. We don't keep what's sent for checking. Google may use what's
+          sent through its free tier to improve its products, so don't upload anything private.
         </li>
         <li>
           <b>Sentry:</b> if a page crashes, it gets the error, the page address (without anything

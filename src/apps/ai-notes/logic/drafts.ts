@@ -13,3 +13,4 @@ export const loadDrafts = (now?: number) => store.load(now);
 export const saveDraft = (notes: Notes, now?: number) => store.save(notes, now);
 export const deleteDraft = (id: string, now?: number) => store.remove(id, now);
 export const draftAge = (savedAt: number, now?: number) => age(savedAt, DRAFT_DAYS, now);
+export const updateDraft = (id: string, notes: Notes, now?: number) => store.update(id, notes, now);

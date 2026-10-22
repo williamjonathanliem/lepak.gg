@@ -47,7 +47,7 @@ export const GROUPS: AppGroup[] = [
     id: 'hangout',
     title: 'Hang out',
     blurb: 'Watch, draw and plan together.',
-    ids: ['watch', 'whiteboard', 'makan-split', 'free-time-finder'],
+    ids: ['watch', 'whiteboard', 'makan-split', 'free-time-finder', 'spin-wheel', 'coin-flip'],
   },
   {
     id: 'tools',
@@ -70,13 +70,14 @@ export function groupOf(app: AppManifest): AppGroup['id'] {
   return GROUPS.find((g) => g.ids.includes(app.id))?.id ?? FALLBACK[app.category];
 }
 
-/** Each group with its apps: listed ones first (in order), then any others. */
+/** Each group with its apps: AI ones first, then listed ones (in order), then any others. */
 export function groupedApps(apps: readonly AppManifest[] = APPS) {
   return GROUPS.map((g) => {
     const mine = apps.filter((a) => groupOf(a) === g.id);
+    // AI apps sit together at the front of their group, then the listed order.
     const rank = (a: AppManifest) => {
       const i = g.ids.indexOf(a.id);
-      return i < 0 ? 999 : i;
+      return (a.ai ? 0 : 10_000) + (i < 0 ? 999 : i);
     };
     return { ...g, apps: [...mine].sort((a, b) => rank(a) - rank(b)) };
   });
@@ -89,6 +90,10 @@ export const JOINABLE: { id: string; name: string; path: (code: string) => strin
   { id: 'watch', name: 'Watch Together', path: (c) => `/watch/r/${c}` },
   { id: 'whiteboard', name: 'Whiteboard', path: (c) => `/whiteboard/r/${c}` },
   { id: 'device-drop', name: 'Device Drop', path: (c) => `/drop/r/${c}` },
+  { id: 'notes-to-game', name: 'Notes → Game', path: (c) => `/notes-game/r/${c}` },
+  { id: 'study-room', name: 'Study Room', path: (c) => `/study/r/${c}` },
+  { id: 'free-time-finder', name: 'Free-Time Finder', path: (c) => `/free/r/${c}` },
+  { id: 'deadlines', name: 'Deadlines', path: (c) => `/deadlines/r/${c}` },
 ];
 
 /** Short line under an app's name: who it's for. */

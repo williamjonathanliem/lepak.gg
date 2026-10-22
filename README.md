@@ -5,7 +5,8 @@ A free, open source hub for students. Play party games, study together and use t
 "Lepak" is Malaysian slang for hanging out.
 
 - **Live:** https://lepak-gg.vercel.app (not deployed yet)
-- **License:** [MIT](LICENSE)
+- **License:** [AGPL-3.0](LICENSE). Use it, change it, host it, but if you run a changed copy
+  for others, share your changes under the same licence.
 - **Repo:** https://github.com/williamjonathanliem/lepak.gg
 
 ## Run it locally

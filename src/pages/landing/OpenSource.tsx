@@ -15,7 +15,7 @@ export function OpenSource() {
       className="on-dark flex flex-wrap items-end justify-between gap-12 border-b-3 border-ink bg-ink px-gutter py-[clamp(56px,7vw,104px)] text-paper"
     >
       <div className="flex min-w-0 flex-[1_1_520px] flex-col gap-[22px]">
-        <SectionLabel number="005" title={SOURCE.label} className="text-mute-dark" />
+        <SectionLabel number="006" title={SOURCE.label} className="text-mute-dark" />
         <h2 id="open-heading" className="heading-lg m-0">
           {SOURCE.heading[0]}
           <br />

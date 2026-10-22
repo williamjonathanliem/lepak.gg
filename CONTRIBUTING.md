@@ -115,10 +115,10 @@ The short version (full guide: [README: Add an app](README.md#add-an-app)):
 
 ### Licences
 
-- New library or data set? Check its licence allows use in an MIT project (MIT, BSD, Apache
-  and ISC are fine; **GPL and AGPL are not**), then add a row to [CREDITS.md](CREDITS.md) in the
-  same pull request.
-- Don't copy code from GPL projects. Reading them for ideas is fine.
+- New library or data set? Check its licence works in an AGPL-3.0 project. MIT, BSD, ISC,
+  Apache-2.0, LGPL, GPL-3.0 and AGPL-3.0 are fine; "non-commercial only", "no derivatives" and
+  GPL-2.0-only are not. Then add a row to [CREDITS.md](CREDITS.md) in the same pull request.
+- Ask before copying code from another project, even an open one; keep its licence notice.
 
 ## Reporting things
 
@@ -135,4 +135,5 @@ person. Harassment of any kind isn't welcome here.
 
 ## Licence
 
-By contributing, you agree that your work is shared under the project's [MIT licence](LICENSE).
+By contributing, you agree that your work is shared under the project's
+[AGPL-3.0 licence](LICENSE).

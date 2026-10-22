@@ -4,7 +4,8 @@ export const aiNotes: AppManifest = {
   id: 'ai-notes',
   number: '009',
   name: 'AI Notes',
-  tagline: 'Drop slides, a PDF or a Word file. Get notes, key terms, flashcards and a quiz.',
+  tagline:
+    'Drop slides or a PDF. Get notes, flashcards that remember, and quizzes with an exam mode.',
   category: 'study',
   accent: '#ffd23f',
   status: 'beta',

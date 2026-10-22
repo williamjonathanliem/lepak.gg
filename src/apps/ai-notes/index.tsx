@@ -1,11 +1,31 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { AppHeader } from '../../components/AppHeader';
-import { DRAFT_DAYS, deleteDraft, draftAge, loadDrafts, saveDraft } from './logic/drafts';
+import { aiHeaders } from '../../lib/aiHeaders';
+import {
+  DRAFT_DAYS,
+  deleteDraft,
+  draftAge,
+  loadDrafts,
+  saveDraft,
+  updateDraft,
+  type NotesDraft,
+} from './logic/drafts';
 import { formatBytes } from '../device-drop/logic/transfer';
 import { DropZone } from '../notes/ui/DropZone';
 import { readFile } from './logic/readFile';
-import { NotesSchema, aiFileChecks, bingoWords, toMarkdown, type Notes } from './logic/notes';
+import {
+  NotesSchema,
+  aiFileChecks,
+  answerText,
+  bingoWords,
+  toMarkdown,
+  type Notes,
+} from './logic/notes';
+import { learnt, startSession } from './logic/practice';
+import { forgetOthers, loadProgress, saveSource, type Source } from './logic/saved';
+import { Practice } from './ui/Practice';
+import { QuizTab } from './ui/QuizTab';
 
 // AI Notes: drop a PDF, slides or Word file (or paste text) and get a summary, key terms,
 // flashcards and a quiz. The server side is a Genkit flow calling Gemini (api/_lib/aiNotes.ts).
@@ -15,22 +35,59 @@ const MAX_TEXT = 60_000;
 
 type Tab = 'notes' | 'cards' | 'quiz';
 
+/** The set of notes on screen, and the draft it's saved as. */
+interface Open {
+  id: string;
+  notes: Notes;
+  tab?: Tab;
+}
+
+/** What the start page promises, so people know about practice and quizzes before uploading. */
+const FEATURES = [
+  { title: 'Notes', blurb: 'Summary, key points and key terms in plain words.' },
+  {
+    title: 'Flashcards that remember',
+    blurb: 'Say “got it” or “again”. Cards come back right before you forget them.',
+  },
+  {
+    title: 'Quiz builder',
+    blurb: 'Add 10 to 30 questions: multiple choice, true or false, short answer.',
+  },
+  { title: 'Exam mode', blurb: 'Timed, answers at the end, then retry the ones you got wrong.' },
+];
+
 export default function AiNotes() {
-  const [notes, setNotes] = useState<Notes | null>(null);
+  // The hub can send you straight to a set's flashcards ("3 flashcards due").
+  const openDraft = (useLocation().state as { openDraft?: string } | null)?.openDraft;
+  const [open, setOpen] = useState<Open | null>(() => {
+    const d = openDraft ? loadDrafts().find((x) => x.id === openDraft) : undefined;
+    return d ? { id: d.id, notes: d.data, tab: 'cards' } : null;
+  });
   return (
     <div className="min-h-dvh">
       <title>AI Notes · Lepak.gg</title>
       <AppHeader app={{ name: 'AI Notes', to: '/ai-notes', accent: ACCENT }} />
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-gutter py-[clamp(24px,5vw,56px)]">
-        {notes ? (
-          <Result notes={notes} onReset={() => setNotes(null)} />
+        {open ? (
+          <Result
+            key={open.id}
+            draftId={open.id}
+            initialTab={open.tab}
+            notes={open.notes}
+            onChange={(notes) => {
+              updateDraft(open.id, notes);
+              setOpen({ ...open, notes });
+            }}
+            onReset={() => setOpen(null)}
+          />
         ) : (
           <Maker
-            onDone={(n) => {
-              saveDraft(n); // kept on this device for a week
-              setNotes(n);
+            onDone={(notes, source) => {
+              const id = saveDraft(notes); // kept on this device for a week
+              void saveSource(id, source); // so more quiz questions can be made later
+              setOpen({ id, notes });
             }}
-            onOpen={setNotes}
+            onOpen={(d, tab) => setOpen({ id: d.id, notes: d.data, tab })}
           />
         )}
       </main>
@@ -40,8 +97,19 @@ export default function AiNotes() {
 
 // ---------- input ----------
 
-function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Notes) => void }) {
+function Maker({
+  onDone,
+  onOpen,
+}: {
+  onDone: (n: Notes, source: Source) => void;
+  onOpen: (d: NotesDraft, tab?: Tab) => void;
+}) {
   const [drafts, setDrafts] = useState(() => loadDrafts());
+  const [now] = useState(() => Date.now());
+  // Drop saved files and flashcard progress of drafts that expired or were deleted.
+  useEffect(() => {
+    void forgetOthers(drafts.map((d) => d.id));
+  }, [drafts]);
   // A file dropped on the landing page arrives here and goes straight into the box.
   const handed = (useLocation().state as { file?: File } | null)?.file;
   const [file, setFile] = useState<File | null>(null);
@@ -71,7 +139,7 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
       }
       const res = await fetch('/api/ai-notes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: aiHeaders(),
         body: JSON.stringify({ ...input, fileName: file?.name }),
       });
       if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {
@@ -84,7 +152,7 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
       }
       const parsed = NotesSchema.safeParse(body);
       if (!parsed.success) throw new Error('The notes came back in a strange shape. Try again.');
-      onDone(parsed.data);
+      onDone(parsed.data, { ...input, fileName: file?.name });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not make notes. Try again.');
     } finally {
@@ -99,9 +167,17 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
       <div>
         <h1 className="heading-lg m-0">AI Notes.</h1>
         <p className="mt-2 mb-0 max-w-xl text-mute">
-          Drop your lecture slides, a PDF or a Word file. Get a summary, key terms, flashcards and a
-          quick quiz in about 20 seconds.
+          Drop your lecture slides, a PDF or a Word file. In about 20 seconds you get:
         </p>
+        <ul className="m-0 mt-4 grid list-none gap-[3px] border-3 border-ink bg-ink p-0 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map((f, i) => (
+            <li key={f.title} className="flex flex-col gap-1 bg-paper p-4">
+              <span className="font-mono text-xs text-mute">0{i + 1}</span>
+              <span className="font-black uppercase">{f.title}</span>
+              <span className="text-sm text-mute">{f.blurb}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Same animated drop box as Lepak Pages: marching border, then the checks tick in. */}
@@ -177,6 +253,10 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
           <ul className="m-0 flex list-none flex-col border-3 border-ink p-0">
             {drafts.map((d) => {
               const age = draftAge(d.savedAt);
+              const total = d.data.flashcards.length;
+              const progress = loadProgress(d.id);
+              const started = Object.keys(progress).length > 0;
+              const due = startSession(total, progress, now).length;
               return (
                 <li
                   key={d.id}
@@ -187,11 +267,26 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
                     <span className="block font-mono text-xs text-mute">
                       {age.saved} · {age.left}
                     </span>
+                    <span className="block font-mono text-xs">
+                      {started
+                        ? `${learnt(total, progress)} of ${total} cards learnt · ${due} due`
+                        : `${total} flashcards`}{' '}
+                      · {d.data.quiz.length} quiz questions
+                    </span>
                   </span>
                   <span className="flex gap-2">
+                    {started && due > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => onOpen(d, 'cards')}
+                        className="min-h-11 cursor-pointer border-3 border-ink bg-[#7ee081] px-3 font-mono text-sm font-bold"
+                      >
+                        Practise {due}
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={() => onOpen(d.data)}
+                      onClick={() => onOpen(d)}
                       className="min-h-11 cursor-pointer border-3 border-ink px-3 font-mono text-sm font-bold"
                       style={{ background: ACCENT }}
                     >
@@ -218,9 +313,22 @@ function Maker({ onDone, onOpen }: { onDone: (n: Notes) => void; onOpen: (n: Not
 
 // ---------- result ----------
 
-function Result({ notes, onReset }: { notes: Notes; onReset: () => void }) {
+function Result({
+  draftId,
+  notes,
+  initialTab = 'notes',
+  onChange,
+  onReset,
+}: {
+  draftId: string;
+  notes: Notes;
+  initialTab?: Tab;
+  onChange: (notes: Notes) => void;
+  onReset: () => void;
+}) {
   const navigate = useNavigate();
-  const [tab, setTab] = useState<Tab>('notes');
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const cardsLearnt = learnt(notes.flashcards.length, loadProgress(draftId));
   const [copied, setCopied] = useState(false);
   const words = bingoWords(notes);
   const tabs: { id: Tab; label: string }[] = [
@@ -294,6 +402,37 @@ function Result({ notes, onReset }: { notes: Notes; onReset: () => void }) {
           </button>
         </div>
 
+        {/* The study tools, front and centre: most people never open a second tab. */}
+        {tab === 'notes' && (notes.flashcards.length > 0 || notes.quiz.length > 0) && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {notes.flashcards.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setTab('cards')}
+                className="push flex min-h-20 cursor-pointer flex-col items-start justify-center gap-1 border-3 border-ink bg-[#7ee081] px-4 py-3 text-left shadow-hard"
+              >
+                <span className="text-xl font-black uppercase">
+                  Practise {notes.flashcards.length} flashcards →
+                </span>
+                <span className="font-mono text-xs">
+                  {cardsLearnt > 0 ? `${cardsLearnt} learnt so far. ` : ''}They come back right
+                  before you forget.
+                </span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setTab('quiz')}
+              className="push flex min-h-20 cursor-pointer flex-col items-start justify-center gap-1 border-3 border-ink bg-[#b9a2ff] px-4 py-3 text-left shadow-hard"
+            >
+              <span className="text-xl font-black uppercase">Take a quiz →</span>
+              <span className="font-mono text-xs">
+                {notes.quiz.length} questions. Exam mode, or add more any time.
+              </span>
+            </button>
+          </div>
+        )}
+
         <div role="tablist" aria-label="Notes sections" className="flex border-b-3 border-ink">
           {tabs.map((t) => (
             <button
@@ -310,8 +449,8 @@ function Result({ notes, onReset }: { notes: Notes; onReset: () => void }) {
         </div>
 
         {tab === 'notes' && <NotesTab notes={notes} />}
-        {tab === 'cards' && <Flashcards cards={notes.flashcards} />}
-        {tab === 'quiz' && <Quiz quiz={notes.quiz} />}
+        {tab === 'cards' && <Practice draftId={draftId} cards={notes.flashcards} />}
+        {tab === 'quiz' && <QuizTab notes={notes} draftId={draftId} onChange={onChange} />}
 
         <p className="m-0 font-mono text-xs text-mute">
           Made by AI from your file. It can get things wrong: check anything important. Saved on
@@ -360,139 +499,6 @@ function NotesTab({ notes }: { notes: Notes }) {
             ))}
           </dl>
         </section>
-      )}
-    </div>
-  );
-}
-
-function Flashcards({ cards }: { cards: Notes['flashcards'] }) {
-  const [i, setI] = useState(0);
-  const [flipped, setFlipped] = useState(false);
-  const card = cards[i];
-  if (!card) return <p className="m-0">No flashcards this time.</p>;
-  const go = (d: number) => {
-    setFlipped(false);
-    setI((n) => (n + d + cards.length) % cards.length);
-  };
-  return (
-    <div className="flex flex-col items-center gap-4">
-      <button
-        type="button"
-        onClick={() => setFlipped((f) => !f)}
-        aria-label={flipped ? 'Show the question' : 'Show the answer'}
-        className="flex min-h-56 w-full max-w-xl cursor-pointer flex-col items-center justify-center gap-3 border-3 border-ink p-6 text-center shadow-hard"
-        style={{ background: flipped ? '#f9fafb' : ACCENT }}
-      >
-        <span className="font-mono text-xs uppercase">{flipped ? 'Answer' : 'Question'}</span>
-        <span key={`${i}-${flipped}`} className="animate-pop text-[clamp(18px,3vw,26px)] font-bold">
-          {flipped ? card.back : card.front}
-        </span>
-        <span className="font-mono text-xs text-mute">Tap to flip</span>
-      </button>
-      <div className="flex items-center gap-4 font-mono text-sm">
-        <button
-          type="button"
-          onClick={() => go(-1)}
-          className="min-h-11 min-w-11 cursor-pointer border-3 border-ink bg-paper px-3"
-          aria-label="Previous card"
-        >
-          ←
-        </button>
-        <span>
-          {i + 1} / {cards.length}
-        </span>
-        <button
-          type="button"
-          onClick={() => go(1)}
-          className="min-h-11 min-w-11 cursor-pointer border-3 border-ink bg-paper px-3"
-          aria-label="Next card"
-        >
-          →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Quiz({ quiz }: { quiz: Notes['quiz'] }) {
-  const [i, setI] = useState(0);
-  const [picked, setPicked] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const q = quiz[i];
-
-  if (!quiz.length) return <p className="m-0">No quiz this time.</p>;
-  if (!q) {
-    return (
-      <div className="flex flex-col items-start gap-4">
-        <p className="m-0 text-3xl font-black">
-          {score} / {quiz.length}
-        </p>
-        <p className="m-0">
-          {score === quiz.length
-            ? 'Perfect! Steady lah.'
-            : 'Not bad. Flip through the flashcards and try again.'}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            setI(0);
-            setScore(0);
-            setPicked(null);
-          }}
-          className="push min-h-11 cursor-pointer border-3 border-ink px-4 font-mono font-bold uppercase shadow-hard"
-          style={{ background: ACCENT }}
-        >
-          Again
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <p className="m-0 font-mono text-xs uppercase">
-        Question {i + 1} of {quiz.length} · score {score}
-      </p>
-      <p className="m-0 text-xl font-bold">{q.question}</p>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {q.options.map((o, j) => {
-          const right = picked !== null && j === q.answer;
-          const wrong = picked === j && j !== q.answer;
-          return (
-            <button
-              key={j}
-              type="button"
-              disabled={picked !== null}
-              onClick={() => {
-                setPicked(j);
-                if (j === q.answer) setScore((s) => s + 1);
-              }}
-              className={`min-h-12 cursor-pointer border-3 border-ink px-3 py-2 text-left font-bold disabled:cursor-default ${
-                right ? 'bg-[#7ee081]' : wrong ? 'bg-hot' : 'bg-paper'
-              }`}
-            >
-              {String.fromCharCode(65 + j)}. {o}
-            </button>
-          );
-        })}
-      </div>
-      {picked !== null && (
-        <div className="flex flex-wrap items-center justify-between gap-3" role="status">
-          <p className="m-0">
-            {picked === q.answer ? 'Correct! ' : 'Not quite. '}
-            {q.why}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setPicked(null);
-              setI((n) => n + 1);
-            }}
-            className="push min-h-11 cursor-pointer border-3 border-ink bg-ink px-4 font-mono font-bold text-paper uppercase shadow-hard"
-          >
-            {i + 1 < quiz.length ? 'Next' : 'See score'}
-          </button>
-        </div>
       )}
     </div>
   );
@@ -552,16 +558,20 @@ function PrintNotes({ notes }: { notes: Notes }) {
       )}
       {notes.quiz.length > 0 && (
         <>
-          <h2 className={h2}>Quick quiz</h2>
+          <h2 className={h2}>Quiz</h2>
           <ol className="m-0 pl-5">
             {notes.quiz.map((q, i) => (
               <li key={i} className="mb-2 break-inside-avoid">
                 {q.question}
-                <ol className="m-0 list-[upper-alpha] pl-5">
-                  {q.options.map((o, j) => (
-                    <li key={j}>{o}</li>
-                  ))}
-                </ol>
+                {q.type === 'tf' && ' (True or false?)'}
+                {q.type === 'short' && ' ______________'}
+                {q.type !== 'tf' && q.type !== 'short' && (
+                  <ol className="m-0 list-[upper-alpha] pl-5">
+                    {q.options.map((o, j) => (
+                      <li key={j}>{o}</li>
+                    ))}
+                  </ol>
+                )}
               </li>
             ))}
           </ol>
@@ -569,7 +579,7 @@ function PrintNotes({ notes }: { notes: Notes }) {
           <ol className="m-0 pl-5">
             {notes.quiz.map((q, i) => (
               <li key={i}>
-                {String.fromCharCode(65 + q.answer)}. {q.options[q.answer]}. {q.why}
+                {answerText(q)}. {q.why}
               </li>
             ))}
           </ol>

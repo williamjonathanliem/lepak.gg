@@ -28,6 +28,9 @@ export function TopBar() {
         <a href="#wall" className={NAV_LINK}>
           {NAV.wall}
         </a>
+        <a href="#class" className={NAV_LINK}>
+          {NAV.class}
+        </a>
         <a href="#open" className={NAV_LINK}>
           {NAV.source}
         </a>

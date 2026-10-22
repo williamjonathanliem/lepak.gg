@@ -2,8 +2,14 @@
 // Runs in GitHub Actions (.github/workflows/cleanup.yml). Keep these numbers in sync with
 // the Privacy page (src/pages/Legal.tsx).
 //
-//   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc), live note editing
-//   14 days  shared whiteboards (drawings + pictures)
+//   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc), live note editing,
+//            study rooms, live quiz rooms
+//   14 days  shared whiteboards (drawings + pictures), free-time polls
+//   30 days  after the last change and the last due date: deadline boards
+//
+// It also keeps the front-page wall from going empty: if fewer than WALL_MIN notes are up,
+// it adds team notes (signed "Lepak team", shown with a TEAM badge). They are prompts and
+// news from us, never made-up reviews.
 //   30 days  votes, notes on the landing wall, Lepak Pages (+ files), guest accounts nobody has used
 //
 // Env (GitHub secrets):
@@ -26,6 +32,9 @@ const RETENTION = {
   rtc: 1 * DAY,
   collab: 1 * DAY, // live note editing; the saved note lives in Supabase
   boards: 14 * DAY,
+  study: 1 * DAY,
+  quiz: 1 * DAY,
+  free: 14 * DAY,
   wall: 30 * DAY, // landing page notes; updatedAt is when it was posted
 };
 const VOTES_MS = 30 * DAY;
@@ -75,6 +84,21 @@ async function cleanFirebase() {
   log(`votes: ${dropped} expired, ${Object.keys(patch).length - dropped} dated`);
   if (!dryRun && Object.keys(patch).length) await db.ref('votes').update(patch);
 
+  // Deadline boards: 30 days after the last change, but never while a deadline is still coming.
+  const boards = (await db.ref('deadlines').get()).val() ?? {};
+  const oldBoards = Object.entries(boards)
+    .filter(([, b]) => {
+      const lastDue = Math.max(0, ...Object.values(b?.items ?? {}).map((i) => i?.due ?? 0));
+      return !(b?.updatedAt > now - 30 * DAY) && lastDue < now - 30 * DAY;
+    })
+    .map(([code]) => code);
+  log(`deadlines: ${oldBoards.length} boards past their 30 days`);
+  if (!dryRun && oldBoards.length) {
+    await db.ref('deadlines').update(Object.fromEntries(oldBoards.map((k) => [k, null])));
+  }
+
+  await topUpWall(db);
+
   // Wall leftovers: +1s and reports on notes that are gone, post-limit stamps older than a
   // day, and bans older than 30 days.
   const notes = (await db.ref('wall').get()).val() ?? {};
@@ -113,6 +137,78 @@ async function cleanFirebase() {
       await auth.deleteUsers(stale.slice(i, i + 1000));
     }
   }
+}
+
+// ---------- keeping the wall alive ----------
+
+const WALL_MIN = 3;
+const TEAM_UID = 'lepak-team';
+// Always on the wall (put back if gone): things we're asking people to vote on.
+export const PINNED_TEAM_NOTES = [
+  {
+    kind: 'idea',
+    text: 'Account system? We’re building it: sync your notes, flashcards and streaks across devices. +1 if you want it.',
+  },
+];
+// Rotated through by the month, so the wall doesn't show the same three every time.
+const TEAM_NOTES = [
+  { kind: 'idea', text: 'What game should we build next? Stick your idea here.' },
+  { kind: 'idea', text: 'Found a bug? Tell us which app and what happened.' },
+  { kind: 'love', text: 'Thanks for lepaking with us. Everything here stays free.' },
+  { kind: 'idea', text: 'Which daily puzzle do you play first? +1 your favourite idea.' },
+  { kind: 'idea', text: 'Lecturers: want a class mode? Tell us what you need.' },
+  { kind: 'idea', text: 'Want KataBomb in Bahasa Melayu? Say so here.' },
+  { kind: 'love', text: 'New apps land every few weeks. Check the Index.' },
+  { kind: 'idea', text: 'What would make studying for finals less painful?' },
+];
+
+export async function topUpWall(db) {
+  const notes = Object.values((await db.ref('wall').get()).val() ?? {});
+  const up = new Set(notes.map((n) => n?.text));
+  const pinned = PINNED_TEAM_NOTES.filter((n) => !up.has(n.text));
+  if (pinned.length && !dryRun) {
+    const patch = {};
+    pinned.forEach((n, i) => {
+      patch[db.ref('wall').push().key] = {
+        text: n.text,
+        kind: n.kind,
+        color: 3 - (i % 4),
+        nick: 'Lepak team',
+        uid: TEAM_UID,
+        pinned: true,
+        updatedAt: now + 1, // newest, so it shows near the top under "New"
+      };
+    });
+    await db.ref('wall').update(patch);
+  }
+  log(`wall: ${pinned.length} pinned team notes put back`);
+  pinned.forEach((n) => up.add(n.text));
+  const count = notes.length + pinned.length;
+  const missing = WALL_MIN - count;
+  if (missing <= 0) {
+    log('wall: enough notes, no top-up');
+    return;
+  }
+  const start = new Date(now).getUTCMonth() % TEAM_NOTES.length;
+  const picks = [];
+  for (let k = 0; k < TEAM_NOTES.length && picks.length < missing; k++) {
+    const note = TEAM_NOTES[(start + k) % TEAM_NOTES.length];
+    if (!up.has(note.text)) picks.push(note);
+  }
+  log(`wall: ${count} notes up, adding ${picks.length} team notes`);
+  if (dryRun) return;
+  const patch = {};
+  picks.forEach((n, i) => {
+    patch[db.ref('wall').push().key] = {
+      text: n.text,
+      kind: n.kind,
+      color: i % 4,
+      nick: 'Lepak team',
+      uid: TEAM_UID,
+      updatedAt: now - i, // keeps their order stable
+    };
+  });
+  await db.ref('wall').update(patch);
 }
 
 // ---------- Supabase (Lepak Pages) ----------

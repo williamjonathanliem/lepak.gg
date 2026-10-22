@@ -1,4 +1,5 @@
 import { getFirebase } from './firebase';
+import { TEAM_UID, type NoteKind } from './wall';
 
 // Admin tools for /admin. Being an admin means: signed in with the email account made in
 // the Firebase console, AND listed at admins/{uid}: true (only addable from the console).
@@ -100,6 +101,34 @@ export const ROOM_KINDS: RoomKind[] = [
     path: 'collab',
     people: (d) => count(d.peers),
   },
+  {
+    id: 'quiz',
+    label: 'Notes → Game',
+    path: 'quiz',
+    href: (c) => `/notes-game/r/${c}`,
+    people: (d) => count(d.players),
+  },
+  {
+    id: 'study',
+    label: 'Study Room',
+    path: 'study',
+    href: (c) => `/study/r/${c}`,
+    people: (d) => count(d.people),
+  },
+  {
+    id: 'free',
+    label: 'Free-Time Finder',
+    path: 'free',
+    href: (c) => `/free/r/${c}`,
+    people: (d) => count(d.people),
+  },
+  {
+    id: 'deadlines',
+    label: 'Deadlines',
+    path: 'deadlines',
+    href: (c) => `/deadlines/r/${c}`,
+    people: (d) => count(d.items),
+  },
 ];
 
 export interface RoomRow {
@@ -139,6 +168,29 @@ export const closeRoom = (kind: RoomKind, code: string) =>
   patch({ [`${kind.path}/${code}`]: null });
 
 // ---------- wall ----------
+
+/** Posts a note as the Lepak team (shown with a TEAM badge). */
+export async function postTeamNote(note: {
+  text: string;
+  kind: NoteKind;
+  color: number;
+  pinned: boolean;
+}): Promise<void> {
+  const [{ db }, { ref, push, set, serverTimestamp }] = await Promise.all([
+    getFirebase(),
+    import('firebase/database'),
+  ]);
+  await set(push(ref(db, 'wall')), {
+    ...note,
+    nick: 'Lepak team',
+    uid: TEAM_UID,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export const setNoteKind = (id: string, kind: NoteKind) => patch({ [`wall/${id}/kind`]: kind });
+export const setPinned = (id: string, pinned: boolean) =>
+  patch({ [`wall/${id}/pinned`]: pinned || null });
 
 export const approveNote = (id: string) =>
   patch({ [`wall/${id}/approved`]: true, [`wallReports/${id}`]: null });

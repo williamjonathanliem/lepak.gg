@@ -18,4 +18,12 @@ describe('app groups', () => {
     expect(playersLabel(app('sudoku'))).toBe('Daily puzzle');
     expect(playersLabel(app('ai-notes'))).toBe('Just you');
   });
+
+  it('puts AI apps side by side at the front of their group', () => {
+    const study = groupedApps().find((g) => g.id === 'study')!;
+    const ai = study.apps.map((a) => !!a.ai);
+    const firstNonAi = ai.indexOf(false);
+    expect(ai.slice(firstNonAi).includes(true)).toBe(false);
+    expect(firstNonAi).toBeGreaterThan(0);
+  });
 });

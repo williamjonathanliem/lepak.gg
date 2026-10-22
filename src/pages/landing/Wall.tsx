@@ -13,6 +13,7 @@ import {
   setPlus,
   setReport,
   NoteRefused,
+  paperOf,
   sortNotes,
   wallEnabled,
   watchWall,
@@ -60,7 +61,12 @@ export function Wall() {
       { rootMargin: '400px' },
     );
     io.observe(el);
-    return () => io.disconnect();
+    // Safety net: some browsers (or a hidden tab) never report it on screen; load anyway.
+    const fallback = setTimeout(() => setLoad('loading'), 4000);
+    return () => {
+      io.disconnect();
+      clearTimeout(fallback);
+    };
   }, [load]);
 
   const listening = load === 'loading' || load === 'ready';
@@ -469,15 +475,27 @@ function Note({ note }: { note: WallNote }) {
   return (
     <article
       className="wall-note relative flex min-h-[200px] flex-col gap-3 border-3 border-ink p-4 pt-5 shadow-hard-sm"
-      style={{ background: NOTE_COLORS[note.color], rotate: `${tiltOf(note.id)}deg` }}
+      style={{ background: paperOf(note), rotate: `${tiltOf(note.id)}deg` }}
     >
       {/* a strip of tape holding it up */}
       <span
         aria-hidden="true"
         className="absolute -top-3 left-1/2 h-5 w-16 -translate-x-1/2 -rotate-2 border-2 border-ink/40 bg-paper/75"
       />
-      <span className="w-fit border-2 border-ink bg-paper px-1.5 font-mono text-[11px] font-bold uppercase">
-        {WALL.kinds[note.kind]}
+      <span className="flex flex-wrap gap-1.5">
+        <span className="w-fit border-2 border-ink bg-paper px-1.5 font-mono text-[11px] font-bold whitespace-nowrap uppercase">
+          {WALL.kinds[note.kind]}
+        </span>
+        {note.pinned && (
+          <span className="w-fit border-2 border-ink bg-paper px-1.5 font-mono text-[11px] font-bold whitespace-nowrap uppercase">
+            📌 {WALL.pinned}
+          </span>
+        )}
+        {note.team && (
+          <span className="w-fit border-2 border-ink bg-ink px-1.5 font-mono text-[11px] font-bold whitespace-nowrap text-paper uppercase">
+            {WALL.team}
+          </span>
+        )}
       </span>
       <p className="m-0 flex-1 text-[17px] leading-snug font-bold break-words">{note.text}</p>
       <p className="m-0 truncate font-mono text-xs">{WALL.by(note.nick)}</p>
@@ -493,7 +511,7 @@ function Note({ note }: { note: WallNote }) {
           {note.plus > 0 ? `▲ ${note.plus}` : WALL.plus}
         </button>
         <span className="flex-1" />
-        {note.mine ? (
+        {note.team ? null : note.mine ? (
           <button
             type="button"
             disabled={busy}

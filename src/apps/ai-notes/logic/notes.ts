@@ -3,22 +3,49 @@
 
 import { z } from 'zod';
 
+// Quiz questions come in three kinds. Multiple choice has no `type` in older drafts, so it's
+// optional there and everything without one is read as multiple choice.
+export const ChoiceQuestionSchema = z.object({
+  type: z.literal('mc').optional(),
+  question: z.string().max(400),
+  options: z.array(z.string().max(200)).min(2).max(6),
+  answer: z.number().int().min(0),
+  why: z.string().max(500),
+});
+export const TrueFalseQuestionSchema = z.object({
+  type: z.literal('tf'),
+  question: z.string().max(400),
+  answer: z.boolean(),
+  why: z.string().max(500),
+});
+export const ShortQuestionSchema = z.object({
+  type: z.literal('short'),
+  question: z.string().max(400),
+  answer: z.string().max(120),
+  /** Other answers that also count (spellings, short forms). */
+  accept: z.array(z.string().max(120)).max(8),
+  why: z.string().max(500),
+});
+export const QuizQuestionSchema = z.union([
+  TrueFalseQuestionSchema,
+  ShortQuestionSchema,
+  ChoiceQuestionSchema,
+]);
+
+export type QuizQuestion = z.infer<typeof QuizQuestionSchema>;
+export type QuestionKind = 'mc' | 'tf' | 'short';
+export const kindOf = (q: QuizQuestion): QuestionKind => q.type ?? 'mc';
+
+/** Most questions one set can hold (the first quiz plus every "add more"). */
+export const MAX_QUESTIONS = 120;
+
 export const NotesSchema = z.object({
   title: z.string().max(200),
   summary: z.string().max(5000),
   keyPoints: z.array(z.string().max(500)).max(20),
   terms: z.array(z.object({ term: z.string().max(100), meaning: z.string().max(500) })).max(30),
   flashcards: z.array(z.object({ front: z.string().max(300), back: z.string().max(600) })).max(30),
-  quiz: z
-    .array(
-      z.object({
-        question: z.string().max(400),
-        options: z.array(z.string().max(200)).min(2).max(6),
-        answer: z.number().int().min(0),
-        why: z.string().max(500),
-      }),
-    )
-    .max(15),
+  quiz: z.array(QuizQuestionSchema).max(MAX_QUESTIONS),
 });
 
 export type Notes = z.infer<typeof NotesSchema>;
@@ -34,12 +61,14 @@ export function toMarkdown(n: Notes): string {
     out.push('## Flashcards', '', ...n.flashcards.map((c) => `- **${c.front}**: ${c.back}`), '');
   }
   if (n.quiz.length) {
-    out.push('## Quick quiz', '');
+    out.push('## Quiz', '');
     n.quiz.forEach((q, i) => {
       out.push(`${i + 1}. ${q.question}`);
-      q.options.forEach((o, j) => out.push(`   - ${String.fromCharCode(65 + j)}. ${o}`));
-      const right = q.options[q.answer];
-      out.push(`   - *Answer: ${right ?? '?'}. ${q.why}*`, '');
+      if (q.type === 'tf') out.push('   - True or false?');
+      else if (q.type !== 'short') {
+        q.options.forEach((o, j) => out.push(`   - ${String.fromCharCode(65 + j)}. ${o}`));
+      }
+      out.push(`   - *Answer: ${answerText(q)}. ${q.why}*`, '');
     });
   }
   out.push(
@@ -48,6 +77,24 @@ export function toMarkdown(n: Notes): string {
     '*Made with Lepak AI Notes. AI can get things wrong: check anything important.*',
   );
   return out.join('\n');
+}
+
+/** The right answer, written out (for printing, markdown and quiz results). */
+export function answerText(q: QuizQuestion): string {
+  if (q.type === 'tf') return q.answer ? 'True' : 'False';
+  if (q.type === 'short') return q.answer;
+  return q.options[q.answer] ?? '?';
+}
+
+/** The notes as plain material, for making more questions when the original file is gone. */
+export function notesAsSource(n: Notes): string {
+  return [
+    n.title,
+    n.summary,
+    ...n.keyPoints,
+    ...n.terms.map((t) => `${t.term}: ${t.meaning}`),
+    ...n.flashcards.map((c) => `${c.front}: ${c.back}`),
+  ].join('\n');
 }
 
 /** Short words and phrases for a revision bingo: the key terms, then short flashcard fronts. */

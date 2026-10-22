@@ -1,13 +1,17 @@
 import type { AppManifest } from '../types';
 
-// Working name. "*" names are placeholders for the game they're inspired by; rename before launch.
 export const notesToGame: AppManifest = {
   id: 'notes-to-game',
   number: '010',
   name: 'Notes → Game',
-  tagline: 'Turn your notes into a quiz round the whole class can play.',
+  tagline: 'Drop slides or a PDF. AI turns it into a live quiz the whole class plays.',
   category: 'study',
   accent: '#ff8fd0',
-  status: 'planned',
+  status: 'beta',
   multiplayer: true,
+  ai: true,
+  minPlayers: 2,
+  maxPlayers: 60,
+  route: '/notes-game',
+  load: () => import('./index'),
 };

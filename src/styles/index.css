@@ -619,6 +619,48 @@
   }
 }
 
+/* Landing 002: the bar under the active demo tab that shows when it moves on by itself. */
+@keyframes demo-timer {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.demo-timer {
+  animation: demo-timer linear forwards;
+}
+
+/* Makan Split: the result printed on a torn-off thermal receipt. The zigzag top and bottom
+   edges are a mask; the hard shadow sits on the wrapper so it follows the torn edge. */
+.receipt-wrap {
+  filter: drop-shadow(6px 6px 0 var(--color-ink));
+  rotate: -1deg;
+}
+.receipt {
+  --tear: 14px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 23px, rgb(0 0 0 / 0.025) 23px 24px), #fffdf4;
+  color: var(--color-ink);
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--tear) 51%
+      repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--tear)
+      51% repeat-x;
+}
+.receipt-rule {
+  margin: 0;
+  border: 0;
+  border-top: 2px dashed var(--color-ink);
+}
+.receipt-dots {
+  flex: 1;
+  min-width: 12px;
+  border-bottom: 2px dotted rgb(0 0 0 / 0.45);
+  translate: 0 -4px;
+}
+
 /* Landing 004: sticky notes slap onto the wall as they arrive. */
 @keyframes wall-slap {
   from {

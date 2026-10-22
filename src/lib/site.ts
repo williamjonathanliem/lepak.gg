@@ -3,7 +3,7 @@ export const SITE = {
   wordmark: 'LEPAK.GG',
   domain: 'lepak-gg.vercel.app',
   repoUrl: 'https://github.com/williamjonathanliem/lepak.gg',
-  license: 'MIT',
+  license: 'AGPL-3.0',
   /** Reports, takedowns, privacy questions. */
   contact: 'lepak.gg.my@gmail.com',
 } as const;

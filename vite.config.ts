@@ -33,6 +33,7 @@ function devApi(): Plugin {
     '/api/ai-notes': async () => (await import('./api/_lib/aiNotes')).handleAiNotesRequest,
     '/api/ai-slides': async () => (await import('./api/_lib/aiSlides')).handleAiSlidesRequest,
     '/api/wall': async () => (await import('./api/_lib/wallPost')).handleWallRequest,
+    '/api/receipt': async () => (await import('./api/_lib/receipt')).handleReceiptRequest,
   };
   return {
     name: 'lepak-dev-api',

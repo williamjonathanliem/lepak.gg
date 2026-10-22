@@ -9,7 +9,7 @@ export const HUB = {
   cancel: 'Cancel',
   nicknameLabel: 'Nickname',
   joinTitle: 'Got a code?',
-  joinBlurb: 'KataBomb, Bingo, Watch Together, Whiteboard or Device Drop. Just type the code.',
+  joinBlurb: 'Any room, poll or board: games, Study Room, Deadlines and more. Just type the code.',
   looking: '...',
   noRoom: 'No room with that code. Check it, or the room may have closed.',
   lookupFailed: 'Could not check that code. Check your internet.',
@@ -18,6 +18,7 @@ export const HUB = {
   join: 'Join',
   badCode: '4 letters or numbers, like KJRW.',
   jumpBack: 'Jump back in',
+  cardsDue: (n: number, title: string) => `${n} flashcard${n === 1 ? '' : 's'} due: ${title}`,
   todayLine: (day: number, done: number, total: number) =>
     `Today, #${day}: ${done} of ${total} daily puzzles done`,
   dailyTitle: (day: number) => `Today’s puzzles #${day}`,

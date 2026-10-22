@@ -19,6 +19,10 @@ const PROBES: { id: string; paths: (code: string) => string[]; check?: (v: unkno
     { id: 'whiteboard', paths: (c) => [`boards/${c}/updatedAt`, `boards/${c}/presence`] },
     { id: 'watch', paths: (c) => [`rtc/${c}/meta/app`], check: (v) => v === 'watch' },
     { id: 'device-drop', paths: (c) => [`rtc/${c}/meta/app`], check: (v) => v === 'drop' },
+    { id: 'notes-to-game', paths: (c) => [`quiz/${c}/game/hostId`] },
+    { id: 'study-room', paths: (c) => [`study/${c}/timer/focusMin`] },
+    { id: 'free-time-finder', paths: (c) => [`free/${c}/meta/owner`] },
+    { id: 'deadlines', paths: (c) => [`deadlines/${c}/meta/owner`] },
   ];
 
 export async function findRoom(code: string): Promise<RoomMatch[]> {

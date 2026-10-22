@@ -80,6 +80,23 @@ function clientIp(request: Request): string {
   );
 }
 
+const PLAYER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** A whole campus can share one IP, so with a guest ID the IP gets a much bigger allowance. */
+const SHARED_IP_FACTOR = 10;
+
+/** Per guest when the page sends its guest ID (X-Lepak-Player), otherwise per IP. A made-up
+ * ID only buys a spammer one guest's allowance, and the IP limit still caps them. */
+function allowed(request: Request, bucket: string, perMinute: number): boolean {
+  const now = Date.now();
+  const ip = clientIp(request);
+  const player = request.headers.get('x-lepak-player');
+  if (!player || !PLAYER_ID.test(player)) return allowRequest(`${bucket}:${ip}`, now, perMinute);
+  return (
+    allowRequest(`${bucket}:p:${player}`, now, perMinute) &&
+    allowRequest(`${bucket}:ip:${ip}`, now, perMinute * SHARED_IP_FACTOR)
+  );
+}
+
 /**
  * The checks every AI request goes through. Returns an error response to send back, or null
  * when the request may go ahead. `bucket` keeps each feature's per-minute limit separate.
@@ -94,7 +111,7 @@ export function guardAiRequest(
     return Response.json({ error: 'AI is not set up on this server' }, { status: 503 });
   }
   if (!fromOurSite(request)) return Response.json({ error: 'Not allowed' }, { status: 403 });
-  if (!allowRequest(`${bucket}:${clientIp(request)}`, Date.now(), perMinute)) {
+  if (!allowed(request, bucket, perMinute)) {
     return Response.json(
       { error: 'Too many in a row. Wait a minute.' },
       { status: 429, headers: { 'Retry-After': '60' } },

@@ -31,6 +31,7 @@ import {
   type SavedDeck,
   type Slide,
 } from './logic/deck';
+import { aiHeaders } from '../../lib/aiHeaders';
 import { Present } from './ui/Present';
 import { SlideView } from './ui/SlideView';
 
@@ -69,7 +70,7 @@ const LANGUAGES = ['auto', 'English', 'Bahasa Malaysia', 'Bahasa Indonesia', 'ä¸
 async function callAi(body: object): Promise<unknown> {
   const res = await fetch('/api/ai-slides', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: aiHeaders(),
     body: JSON.stringify(body),
   });
   if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {

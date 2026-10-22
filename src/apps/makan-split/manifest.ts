@@ -7,6 +7,8 @@ export const makanSplit: AppManifest = {
   tagline: 'Who ordered what, plus SST and service charge.',
   category: 'social',
   accent: '#ffb86b',
-  status: 'planned',
+  status: 'beta',
   multiplayer: false,
+  route: '/split',
+  load: () => import('./index'),
 };

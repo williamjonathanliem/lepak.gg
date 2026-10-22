@@ -20,8 +20,13 @@ describe('app registry', () => {
     expect(ROUTED_APPS.map((a) => a.id)).toEqual([
       'katabomb',
       'notes',
+      'deadlines',
       'device-drop',
+      'study-room',
+      'makan-split',
+      'free-time-finder',
       'ai-notes',
+      'notes-to-game',
       'wordl',
       'connections',
       'strands',
@@ -38,6 +43,8 @@ describe('app registry', () => {
       'bingo',
       'watch',
       'ai-slides',
+      'coin-flip',
+      'spin-wheel',
     ]);
   });
 });

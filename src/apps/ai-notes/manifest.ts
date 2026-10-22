@@ -9,6 +9,7 @@ export const aiNotes: AppManifest = {
   accent: '#ffd23f',
   status: 'beta',
   multiplayer: false,
+  ai: true,
   route: '/ai-notes',
   load: () => import('./index'),
 };

@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { Input, InputError } from '../../components/Input';
 import { SectionLabel } from '../../components/SectionLabel';
 import { Doodle, HandNote } from '../../components/Doodle';
+import { HoloSticker } from '../../components/HoloSticker';
 import { Sticker } from '../../components/Sticker';
 import { Typewriter } from '../../components/Typewriter';
 import { HERO, NICKNAME_ERRORS } from '../../copy/landing';
@@ -126,17 +127,29 @@ export function Hero() {
         <Sticker variant="dark" rotate={-3} bob bobDelay={0.6}>
           {HERO.stickers.free}
         </Sticker>
+        <Sticker
+          variant="light"
+          rotate={-6}
+          bob
+          bobDelay={1.1}
+          className="group relative bg-[#ffd23f]! max-sm:hidden"
+        >
+          <span className="group-hover:invisible">{HERO.stickers.kopi.front}</span>
+          <span className="invisible absolute inset-0 grid place-items-center group-hover:visible">
+            {HERO.stickers.kopi.back}
+          </span>
+        </Sticker>
         <Doodle
           name="sparkle"
           filled
           delay={1.2}
           className="absolute bottom-24 -left-6 size-4 max-sm:hidden"
         />
-        <Sticker variant="round" rotate={10} bob bobDelay={1.2} className="max-sm:hidden">
-          {HERO.stickers.openSource[0]}
+        <HoloSticker rotate={10} sub={HERO.stickers.certified.sub} className="max-sm:hidden">
+          {HERO.stickers.certified.main[0]}
           <br />
-          {HERO.stickers.openSource[1]}
-        </Sticker>
+          {HERO.stickers.certified.main[1]}
+        </HoloSticker>
       </div>
     </section>
   );

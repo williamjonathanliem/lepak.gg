@@ -5,7 +5,7 @@ import type { NicknameError } from '../lib/identity';
 
 export const NAV = {
   index: 'Index',
-  pages: 'Study',
+  wall: 'Wall',
   source: 'Source',
   enter: '[ Enter ]',
 };
@@ -22,7 +22,13 @@ export const HERO = {
   nicknamePlaceholder: 'kopiboi',
   submit: 'Jom masuk',
   formNote: 'takes 2 secs',
-  stickers: { noSignup: 'NO SIGNUP', free: '100% FREE', openSource: ['OPEN', 'SOURCE'] },
+  stickers: {
+    noSignup: 'NO SIGNUP',
+    free: '100% FREE',
+    // A joke, and the hover owns up to it straight away.
+    kopi: { front: '☕ FREE KOPI FOR EVERYONE*', back: '*bring your own kopi lah' },
+    certified: { main: ['Lepak.gg', 'Certified'], sub: '✦ free forever ✦' },
+  },
 };
 
 export const NICKNAME_ERRORS: Record<NicknameError, string> = {
@@ -59,36 +65,64 @@ export const DEMO = {
   ],
 };
 
-export const STUDY = {
-  label: 'Study kit',
-  badge: 'New',
-  sticker: 'AI inside',
-  heading: ['Drop your notes.', 'Pick what you need.'],
-  body: 'Lecture slides, a PDF or a Word file. Turn it into study notes and flashcards, a deck you can present, or a page you can share with the class.',
-  options: {
-    notes: {
-      title: 'Study notes',
-      blurb: 'Summary, key terms, flashcards and a quick quiz.',
-      button: 'Make notes',
-    },
-    slides: {
-      title: 'Slides',
-      blurb: 'Check the plan, then present or download as PowerPoint.',
-      button: 'Make slides',
-    },
-    page: {
-      title: 'A shareable page',
-      blurb: 'Publish it with its own link or QR. Unlisted by default.',
-      button: 'Publish',
-    },
+export const WALL = {
+  label: 'The wall',
+  sticker: 'Say it',
+  heading: ['Stick an idea.', 'Vote the best.'],
+  body: 'Want a new game? Found a bug? Love something? Stick a note on the wall. Tap +1 on the ones you agree with. We read every note and build the top ones first.',
+  howTo: [
+    'Tap a pad (or drag a sheet) to take a note.',
+    'Write it short, 140 letters max. Enter sticks it.',
+    'Every note is checked before it goes up. One a minute each.',
+    'Tap +1 if you agree. Report anything nasty.',
+    'Notes come down after 30 days.',
+  ],
+  textLabel: 'Your note',
+  placeholder: 'Add a Malay version of KataBomb pls',
+  kindLabel: 'What is it?',
+  kinds: { idea: 'Idea', bug: 'Bug', love: 'Love it' },
+  colorLabel: 'Colour',
+  colorNames: ['Yellow', 'Pink', 'Green', 'Blue'],
+  nickLabel: 'Your nickname',
+  nickPlaceholder: 'Your nickname',
+  takeOne: 'Take a note',
+  takeLabel: (colour: string) => `Take a ${colour.toLowerCase()} note`,
+  dropHere: 'Drop it on the wall',
+  draftLabel: 'Your new note',
+  cancel: 'Bin it',
+  post: 'Stick it',
+  posting: 'Sticking...',
+  left: (n: number) => `${n} left`,
+  errors: {
+    'too-short': 'A bit more than that, please.',
+    'too-long': 'Keep it to 140 letters.',
+    rude: 'Keep it friendly, please.',
+    contact: 'No links, emails or phone numbers, please.',
+    nick: 'Pick a nickname first (2 to 16 letters).',
+    slow: 'One note a minute. Try again soon.',
+    banned: 'You can’t post on the wall right now.',
+    unsafe: 'This one can’t go on the wall. Keep it kind and about the site.',
+    'self-harm':
+      'We can’t post this, but we hear you. Please talk to someone: Befrienders KL, 03-7627 2929, any time.',
+    busy: 'Our checker is busy. Try again in a minute.',
+    signin: 'Could not connect. Reload the page and try again.',
+    setup: 'The wall can’t take new notes yet. We’re on it.',
+    failed: 'Could not stick that. Check your internet and try again.',
   },
-  dropTitle: 'Drop a file here',
-  dropNow: 'Drop it!',
-  browse: 'or tap to choose',
-  another: 'Pick another file',
-  dropHint: '.pdf / .pptx / .docx / .txt',
-  pick: 'Now pick what to make:',
-  orStart: 'Or start without a file:',
+  posted: 'Stuck! Thanks.',
+  sortLabel: 'Sort notes',
+  sort: { top: 'Top', new: 'New' },
+  by: (nick: string) => `by ${nick}`,
+  plus: '+1',
+  plusLabel: (n: number, on: boolean) => `${on ? 'Remove your +1' : 'Plus one this'}. ${n} so far.`,
+  remove: 'Take down',
+  report: 'Report',
+  reported: 'Reported',
+  empty: 'Nothing here yet. Be the first to stick a note.',
+  loading: 'Loading the wall...',
+  offline: 'The wall is offline right now. Try again later.',
+  showMore: (n: number) => `+ ${n} more notes`,
+  showLess: 'Show fewer',
 };
 
 export const STEPS = [

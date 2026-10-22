@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useLocation } from 'react-router';
 import { ROUTED_APPS } from '../apps/registry';
 import { CATEGORY_LABEL, type AppCategory } from '../apps/types';
+import { AiTag } from './AiTag';
 import { rememberApp } from '../lib/activity';
 import { SITE } from '../lib/site';
 
@@ -181,7 +182,10 @@ export function AppMenu({ open, onClose }: { open: boolean; onClose: () => void 
                           style={{ background: a.accent }}
                         />
                         <span className="min-w-0">
-                          <span className="block font-bold">{a.name}</span>
+                          <span className="flex items-center gap-1.5 font-bold">
+                            {a.name}
+                            {a.ai && <AiTag />}
+                          </span>
                           <span className="block truncate text-xs opacity-70">{a.tagline}</span>
                         </span>
                       </Link>

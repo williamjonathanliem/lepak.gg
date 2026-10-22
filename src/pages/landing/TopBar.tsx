@@ -25,8 +25,8 @@ export function TopBar() {
         <a href="#index" className={`${NAV_LINK} max-sm:border-l-0`}>
           {NAV.index}
         </a>
-        <a href="#pages" className={NAV_LINK}>
-          {NAV.pages}
+        <a href="#wall" className={NAV_LINK}>
+          {NAV.wall}
         </a>
         <a href="#open" className={NAV_LINK}>
           {NAV.source}

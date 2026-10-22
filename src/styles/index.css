@@ -456,6 +456,230 @@
   letter-spacing: -0.03em;
 }
 
+/* ---------- Holographic sticker (components/HoloSticker.tsx) ----------
+   A round sticker with rainbow foil, a glare that follows the mouse, a little 3D tilt and
+   a corner that peels up on hover. Pure CSS layers; numbers below are in px of a 120px
+   sticker. Reduced motion: the global rule stops the shimmer and transitions. */
+@property --angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 135deg;
+}
+@property --peel {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 46px;
+}
+.holo {
+  --size: 120px;
+  --mx: 30%;
+  --my: 25%;
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  width: var(--size);
+  height: var(--size);
+  rotate: var(--rot, -8deg);
+  /* the hard shadow follows the peeled shape */
+  filter: drop-shadow(5px 5px 0 var(--color-ink));
+  transition:
+    --peel 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2),
+    rotate 0.3s ease;
+}
+/* Hover lifts the corner a little more (not over the words). */
+.holo:hover {
+  --peel: 54px;
+  rotate: 0deg;
+}
+.holo-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--color-ink);
+  background: #dfe3ea;
+  overflow: hidden;
+  /* cut the peeled corner off the face */
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% calc(100% - var(--peel)),
+    calc(100% - var(--peel)) 100%,
+    0 100%
+  );
+  transform: perspective(420px) rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.2s ease-out;
+}
+.holo-foil {
+  position: absolute;
+  inset: -20%;
+  background:
+    repeating-linear-gradient(
+      calc(var(--angle) + 45deg),
+      rgb(255 255 255 / 0.35) 0 2px,
+      transparent 2px 9px
+    ),
+    conic-gradient(from var(--angle), #ff8fd0, #ffd23f, #7ee081, #4fd1e8, #b9a2ff, #ff8fd0);
+  mix-blend-mode: hard-light;
+  opacity: 1;
+  filter: saturate(1.35);
+  animation: holo-shimmer 7s linear infinite;
+}
+/* With a mouse on it, the foil follows the pointer instead of shimmering by itself. */
+.holo:hover .holo-foil {
+  animation: none;
+}
+@keyframes holo-shimmer {
+  to {
+    --angle: 495deg;
+  }
+}
+.holo-glare {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at var(--mx) var(--my),
+    rgb(255 255 255 / 0.9) 0,
+    rgb(255 255 255 / 0.25) 22%,
+    transparent 48%
+  );
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+.holo-text {
+  position: absolute;
+  /* sit a touch up-left, away from the peeling corner */
+  inset: 0 16px 14px 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  text-align: center;
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+.holo-main {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.6);
+}
+.holo-sub {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+/* The peeled flap: the cut-off corner, mirrored across the fold, showing the paper back. */
+.holo-peel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  border: 3px solid var(--color-ink);
+  background: linear-gradient(135deg, #ffffff 30%, #d9d9d9 75%, #bdbdbd);
+  clip-path: polygon(100% calc(100% - var(--peel)), 100% 100%, calc(100% - var(--peel)) 100%);
+  transform-origin: 0 0;
+  /* reflect across the fold line x + y = 2 * size - peel */
+  transform: translate(calc(2 * var(--size) - var(--peel)), calc(2 * var(--size) - var(--peel)))
+    scaleY(-1) rotate(90deg);
+  pointer-events: none;
+}
+
+/* The shiny AI tag next to AI apps' names: a slow rainbow foil, like the holo sticker. */
+@keyframes ai-foil {
+  to {
+    background-position: 200% 0;
+  }
+}
+.ai-tag {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  border: 2px solid var(--color-ink);
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  color: var(--color-ink);
+  background: linear-gradient(100deg, #ffd23f, #ff8fd0, #b9a2ff, #4fd1e8, #7ee081, #ffd23f);
+  background-size: 200% 100%;
+  animation: ai-foil 4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-tag {
+    animation: none;
+  }
+}
+
+/* Landing 004: sticky notes slap onto the wall as they arrive. */
+@keyframes wall-slap {
+  from {
+    opacity: 0;
+    scale: 1.12;
+  }
+}
+.wall-note {
+  animation: wall-slap 0.22s ease-out both;
+}
+/* The top sheet of a pad lifts its corner, like it's ready to be torn off. */
+.wall-pad-top {
+  transform-origin: 0 100%;
+  transition:
+    rotate 0.18s ease-out,
+    translate 0.18s ease-out;
+}
+.wall-pad:hover .wall-pad-top,
+.wall-pad:focus-visible .wall-pad-top {
+  rotate: -9deg;
+  translate: -2px -3px;
+}
+.wall-pad:active .wall-pad-top {
+  rotate: -16deg;
+  translate: -4px -8px;
+}
+/* A torn-off sheet flies onto the wall, then slaps down when stuck. */
+@keyframes wall-peel {
+  from {
+    opacity: 0;
+    translate: -40px -60px;
+    rotate: -14deg;
+    scale: 0.6;
+  }
+  70% {
+    rotate: 3deg;
+  }
+}
+@keyframes wall-stuck {
+  40% {
+    scale: 1.06;
+    rotate: -2deg;
+  }
+}
+.wall-peel {
+  animation: wall-peel 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+.wall-peel.wall-stuck {
+  animation: wall-stuck 0.3s ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wall-note,
+  .wall-peel,
+  .wall-peel.wall-stuck {
+    animation: none;
+  }
+  .wall-pad-top {
+    transition: none;
+  }
+}
+
 /* The app menu: a native <dialog> that slides in from the right. */
 dialog.menu {
   margin: 0 0 0 auto;

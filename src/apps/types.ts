@@ -21,6 +21,8 @@ interface BaseManifest {
   maxPlayers?: number;
   /** Optional tag that replaces the category on the card, e.g. 'LIVE FIRST'. */
   badge?: string;
+  /** Uses AI (Gemini). Shows a shiny AI tag next to the name. */
+  ai?: boolean;
   /** The app's one accent colour. Must keep black text readable (contrast 7:1+). */
   accent: string;
 }

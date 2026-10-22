@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from 'react-router';
 import { groupedApps, playersLabel } from '../apps/groups';
 import { APPS, ROUTED_APPS } from '../apps/registry';
 import type { AppManifest, RoutedAppManifest } from '../apps/types';
+import { AiTag } from '../components/AiTag';
 import { AppHeader } from '../components/AppHeader';
 import { InputError } from '../components/Input';
 import { HUB } from '../copy/hub';
@@ -207,7 +208,10 @@ function AppCard({ app }: { app: RoutedAppManifest }) {
         {app.number}
       </span>
       <span className="flex min-w-0 flex-col gap-1">
-        <span className="text-[19px] leading-tight font-black uppercase">{app.name}</span>
+        <span className="flex flex-wrap items-center gap-2 text-[19px] leading-tight font-black uppercase">
+          {app.name}
+          {app.ai && <AiTag />}
+        </span>
         <span className="line-clamp-2 text-sm text-mute">
           {app.tagline.replace(/ Inspired by .*$/, '')}
         </span>

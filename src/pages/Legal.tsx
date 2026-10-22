@@ -81,6 +81,16 @@ export function Privacy() {
               <td>30 days after the last visit or edit (or when you delete it)</td>
             </tr>
             <tr>
+              <td>Notes on the wall (front page): your note, nickname, +1s and reports</td>
+              <td>To collect ideas and bug reports, and keep the wall kind</td>
+              <td>30 days after you post it (or when you or we take it down)</td>
+            </tr>
+            <tr>
+              <td>Wall bans (only if you broke the wall rules)</td>
+              <td>To stop repeat abuse</td>
+              <td>30 days after the ban</td>
+            </tr>
+            <tr>
               <td>Votes for the next app</td>
               <td>To count votes</td>
               <td>30 days after you voted</td>
@@ -120,9 +130,11 @@ export function Privacy() {
           title and author; we don't keep them).
         </li>
         <li>
-          <b>Google Gemini:</b> AI Notes sends the file or text you choose to Gemini to write the
-          notes. We don't keep it. Google may use what's sent through its free tier to improve its
-          products, so don't upload anything private.
+          <b>Google Gemini:</b> AI Notes and AI Slides send the file or text you choose to Gemini to
+          write the notes or slides. Notes for the wall are sent with your nickname so Gemini can
+          check they're kind before they go up. We don't keep what's sent for checking. Google may
+          use what's sent through its free tier to improve its products, so don't upload anything
+          private.
         </li>
         <li>
           <b>Sentry:</b> if a page crashes, it gets the error, the page address (without anything

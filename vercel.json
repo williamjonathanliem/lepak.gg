@@ -11,6 +11,9 @@
     },
     "api/ai-slides.ts": {
       "maxDuration": 60
+    },
+    "api/wall.ts": {
+      "maxDuration": 60
     }
   }
 }

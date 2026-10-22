@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Confetti } from '../../components/Confetti';
 import { SITE } from '../../lib/site';
 import { todayNumber } from '../wordl/logic/storage';
@@ -51,22 +51,25 @@ export default function Connections() {
   const [dailyState, setDailyState] = useState<ConnState>(
     () => loadDay(day) ?? newGame(daily, seeded(day)),
   );
-  const [practicePuzzle, setPracticePuzzle] = useState<Puzzle>(
-    () => PUZZLES[(day + 5) % PUZZLES.length]!,
-  );
-  const [practiceState, setPracticeState] = useState<ConnState>(() =>
-    newGame(PUZZLES[(day + 5) % PUZZLES.length]!, seeded(day + 5)),
-  );
+  // Practice starts empty: a set is dealt the first time you open the tab.
+  const [practicePuzzle, setPracticePuzzle] = useState<Puzzle | null>(null);
+  const [practiceState, setPracticeState] = useState<ConnState | null>(null);
+  /** Practice sets already dealt this visit, so "New set" doesn't repeat until all are seen. */
+  const seen = useRef(new Set<Puzzle>());
   const [selected, setSelected] = useState<string[]>([]);
   const [toast, setToast] = useState<{ text: string; id: number } | null>(null);
   const [shakeId, setShakeId] = useState(0);
   const [stats, setStats] = useState<ConnStats>(loadStats);
   const [copied, setCopied] = useState(false);
 
-  const puzzle = mode === 'daily' ? daily : practicePuzzle;
-  const state = mode === 'daily' ? dailyState : practiceState;
-  const setState = mode === 'daily' ? setDailyState : setPracticeState;
-  const label = mode === 'daily' ? `Groupthink #${day}` : 'Groupthink practice';
+  const inPractice = mode === 'practice' && practicePuzzle !== null && practiceState !== null;
+  const puzzle = inPractice ? practicePuzzle : daily;
+  const state = inPractice ? practiceState : dailyState;
+  const setState = (next: ConnState | ((s: ConnState) => ConnState)) =>
+    inPractice
+      ? setPracticeState((s) => (typeof next === 'function' ? next(s!) : next))
+      : setDailyState(next);
+  const label = !inPractice ? `Groupthink #${day}` : 'Groupthink practice';
 
   const say = useCallback((text: string) => {
     const id = Date.now();
@@ -90,15 +93,22 @@ export default function Connections() {
       say(MESSAGES[r.result]);
     }
     setState(r.state);
-    if (mode === 'daily') {
+    if (!inPractice) {
       saveDay(day, r.state);
       setStats((st) => recordResult(st, day, r.state));
     }
   }
 
   function newPractice() {
-    // Event handler, so randomness is fine here.
-    const next = PUZZLES[Math.floor(Math.random() * PUZZLES.length)]!;
+    // Event handler, so randomness is fine here. Never today's puzzle or the one just
+    // played; once every set has been seen, start over.
+    let pool = PUZZLES.filter((p) => p !== daily && !seen.current.has(p));
+    if (pool.length === 0) {
+      seen.current.clear();
+      pool = PUZZLES.filter((p) => p !== daily && p !== practicePuzzle);
+    }
+    const next = pool[Math.floor(Math.random() * pool.length)]!;
+    seen.current.add(next);
     setPracticePuzzle(next);
     setPracticeState(newGame(next, Math.random));
     setSelected([]);
@@ -119,6 +129,7 @@ export default function Connections() {
               role="tab"
               aria-selected={mode === m}
               onClick={() => {
+                if (m === 'practice' && practicePuzzle === null) return newPractice();
                 setMode(m);
                 setSelected([]);
               }}
@@ -151,47 +162,50 @@ export default function Connections() {
         </div>
 
         {/* board: solved groups on top, then the remaining tiles */}
-        <div className="grid min-h-0 flex-1 grid-rows-4 gap-1.5">
-          {state.solved.map((g) => {
-            const group = puzzle.groups[g]!;
-            return (
-              <div
-                key={g}
-                className="flex animate-pop flex-col items-center justify-center border-3 border-ink px-2 text-center"
-                style={{ background: LEVEL_BG[group.level] }}
-              >
-                <strong className="font-sans text-[clamp(14px,3.6vw,20px)] font-black uppercase">
-                  {group.title}
-                </strong>
-                <span className="font-mono text-[clamp(11px,2.8vw,14px)]">
-                  {group.words.join(', ')}
-                </span>
+        {/* A square board in whatever space is left, so tiles stay square on any screen. */}
+        <div className="flex min-h-0 flex-1 items-center justify-center [container-type:size]">
+          <div className="grid aspect-square w-[min(100cqw,100cqh)] grid-rows-4 gap-1.5">
+            {state.solved.map((g) => {
+              const group = puzzle.groups[g]!;
+              return (
+                <div
+                  key={g}
+                  className="flex animate-pop flex-col items-center justify-center border-3 border-ink px-2 text-center"
+                  style={{ background: LEVEL_BG[group.level] }}
+                >
+                  <strong className="font-sans text-[clamp(14px,3.6vw,20px)] font-black uppercase">
+                    {group.title}
+                  </strong>
+                  <span className="font-mono text-[clamp(11px,2.8vw,14px)]">
+                    {group.words.join(', ')}
+                  </span>
+                </div>
+              );
+            })}
+            {Array.from({ length: 4 - state.solved.length }, (_, row) => (
+              <div key={`row-${row}`} className="grid grid-cols-4 gap-1.5">
+                {state.order.slice(row * 4, row * 4 + 4).map((w) => {
+                  const on = selected.includes(w);
+                  return (
+                    <button
+                      key={`${w}-${on ? shakeId : 0}`}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggle(w)}
+                      className={`flex min-h-0 min-w-0 [container-type:inline-size] cursor-pointer items-center justify-center overflow-hidden border-3 border-ink px-1 text-center font-sans leading-tight font-black break-normal uppercase transition-transform active:scale-95 ${
+                        on
+                          ? `bg-ink text-paper ${shakeId ? 'animate-shake' : ''}`
+                          : 'bg-soft text-ink'
+                      }`}
+                    >
+                      {/* Long words shrink to fit on one line instead of breaking mid-word. */}
+                      <span style={{ fontSize: tileFont(w) }}>{w}</span>
+                    </button>
+                  );
+                })}
               </div>
-            );
-          })}
-          {Array.from({ length: 4 - state.solved.length }, (_, row) => (
-            <div key={`row-${row}`} className="grid grid-cols-4 gap-1.5">
-              {state.order.slice(row * 4, row * 4 + 4).map((w) => {
-                const on = selected.includes(w);
-                return (
-                  <button
-                    key={`${w}-${on ? shakeId : 0}`}
-                    type="button"
-                    aria-pressed={on}
-                    onClick={() => toggle(w)}
-                    className={`flex min-h-0 min-w-0 [container-type:inline-size] cursor-pointer items-center justify-center overflow-hidden border-3 border-ink px-1 text-center font-sans leading-tight font-black break-normal uppercase transition-transform active:scale-95 ${
-                      on
-                        ? `bg-ink text-paper ${shakeId ? 'animate-shake' : ''}`
-                        : 'bg-soft text-ink'
-                    }`}
-                  >
-                    {/* Long words shrink to fit on one line instead of breaking mid-word. */}
-                    <span style={{ fontSize: tileFont(w) }}>{w}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* mistakes left */}
@@ -217,7 +231,7 @@ export default function Connections() {
                   : 'Solved!'
                 : 'Aiyo, next time.'}
             </p>
-            {mode === 'daily' && (
+            {!inPractice && (
               <p className="m-0 font-mono text-xs text-mute">
                 Played {stats.played} · Won {stats.wins} · Perfect {stats.perfect} · Streak{' '}
                 {stats.streak}
@@ -273,6 +287,15 @@ export default function Connections() {
               Submit
             </button>
           </div>
+        )}
+        {inPractice && !done && (
+          <button
+            type="button"
+            onClick={newPractice}
+            className="mx-auto min-h-11 cursor-pointer border-0 bg-transparent px-3 font-mono text-sm font-bold text-ink underline"
+          >
+            Skip to a new set
+          </button>
         )}
       </main>
       {state.status === 'won' && <Confetti />}

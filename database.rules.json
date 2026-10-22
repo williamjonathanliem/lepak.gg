@@ -1,5 +1,11 @@
 {
   "rules": {
+    "admins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
     "rooms": {
       "katabomb": {
         ".indexOn": ["updatedAt"],
@@ -14,7 +20,7 @@
           "updatedAt": {
             ".write": "auth != null && data.parent().child('state/hostId').val() === auth.uid || (auth != null && !data.parent().child('state').exists())",
             ".validate": "newData.val() === now"
-          },  
+          },
           "intents": {
             "$id": {
               ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid) || (!newData.exists() && root.child('rooms/katabomb').child($code).child('state/hostId').val() === auth.uid))",
@@ -40,8 +46,57 @@
               ".validate": "newData.isBoolean()"
             }
           }
+        },
+        ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+      }
+    },
+    "wall": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".indexOn": ["updatedAt"],
+      "$noteId": {
+        ".write": "auth != null && !newData.exists() && data.child('uid').val() === auth.uid",
+        ".validate": "newData.hasChildren(['text', 'kind', 'color', 'nick', 'uid', 'updatedAt'])",
+        "text": {
+          ".validate": "newData.isString() && newData.val().length >= 3 && newData.val().length <= 140"
+        },
+        "kind": {
+          ".validate": "newData.isString() && newData.val().matches(/^(idea|bug|love)$/)"
+        },
+        "color": {
+          ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 3"
+        },
+        "nick": {
+          ".validate": "newData.isString() && newData.val().length >= 2 && newData.val().length <= 16"
+        },
+        "uid": {
+          ".validate": "newData.isString()"
+        },
+        "updatedAt": {
+          ".validate": "newData.isNumber()"
+        },
+        "approved": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
         }
       }
+    },
+    "wallPlus": {
+      ".read": "auth != null",
+      "$noteId": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && (!newData.exists() || root.child('wall').child($noteId).exists())",
+          ".validate": "newData.val() === true"
+        }
+      },
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+    "wallLast": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
     "votes": {
       ".read": "auth != null",
@@ -51,7 +106,8 @@
           ".write": "auth != null && auth.uid === $uid",
           ".validate": "(newData.isBoolean() && newData.val() === true) || newData.val() === now"
         }
-      }
+      },
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
     "boards": {
       "$code": {
@@ -87,7 +143,9 @@
           }
         }
       },
-      ".indexOn": ["updatedAt"]
+      ".indexOn": ["updatedAt"],
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
     "bingo": {
       "$code": {
@@ -119,7 +177,9 @@
           ".validate": "newData.isBoolean()"
         }
       },
-      ".indexOn": ["updatedAt"]
+      ".indexOn": ["updatedAt"],
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
     "rtc": {
       "$code": {
@@ -159,7 +219,9 @@
           }
         }
       },
-      ".indexOn": ["updatedAt"]
+      ".indexOn": ["updatedAt"],
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
     },
     "collab": {
       ".indexOn": ["updatedAt"],
@@ -187,6 +249,25 @@
             ".validate": "newData.hasChildren(['n']) && newData.child('n').isString() && newData.child('n').val().length <= 16"
           }
         }
+      },
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true"
+    },
+    "wallReports": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$noteId": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid && (!newData.exists() || root.child('wall').child($noteId).exists())",
+          ".validate": "newData.val() === true"
+        }
+      }
+    },
+    "wallBans": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".validate": "newData.isNumber()"
       }
     }
   }

@@ -4,7 +4,7 @@
 //
 //   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc), live note editing
 //   14 days  shared whiteboards (drawings + pictures)
-//   30 days  votes, Lepak Pages (+ files), guest accounts nobody has used
+//   30 days  votes, notes on the landing wall, Lepak Pages (+ files), guest accounts nobody has used
 //
 // Env (GitHub secrets):
 //   FIREBASE_SERVICE_ACCOUNT   the service account JSON (whole file contents)
@@ -26,6 +26,7 @@ const RETENTION = {
   rtc: 1 * DAY,
   collab: 1 * DAY, // live note editing; the saved note lives in Supabase
   boards: 14 * DAY,
+  wall: 30 * DAY, // landing page notes; updatedAt is when it was posted
 };
 const VOTES_MS = 30 * DAY;
 const GUEST_MS = 30 * DAY;
@@ -73,6 +74,23 @@ async function cleanFirebase() {
   const dropped = Object.values(patch).filter((v) => v === null).length;
   log(`votes: ${dropped} expired, ${Object.keys(patch).length - dropped} dated`);
   if (!dryRun && Object.keys(patch).length) await db.ref('votes').update(patch);
+
+  // Wall leftovers: +1s and reports on notes that are gone, post-limit stamps older than a
+  // day, and bans older than 30 days.
+  const notes = (await db.ref('wall').get()).val() ?? {};
+  const leftovers = {};
+  for (const list of ['wallPlus', 'wallReports']) {
+    const all = (await db.ref(list).get()).val() ?? {};
+    for (const id of Object.keys(all)) if (!(id in notes)) leftovers[`${list}/${id}`] = null;
+  }
+  const last = (await db.ref('wallLast').get()).val() ?? {};
+  for (const [uid, at] of Object.entries(last))
+    if (!(at > now - DAY)) leftovers[`wallLast/${uid}`] = null;
+  const bans = (await db.ref('wallBans').get()).val() ?? {};
+  for (const [uid, at] of Object.entries(bans))
+    if (!(at > now - 30 * DAY)) leftovers[`wallBans/${uid}`] = null;
+  log(`wall: ${Object.keys(leftovers).length} leftovers (+1s, reports, stamps, old bans)`);
+  if (!dryRun && Object.keys(leftovers).length) await db.ref().update(leftovers);
 
   // Guest accounts (anonymous sign-ins) not used for 30 days.
   const auth = getAuth();

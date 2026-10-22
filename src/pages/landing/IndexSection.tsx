@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { groupedApps } from '../../apps/groups';
 import { ROUTED_APPS } from '../../apps/registry';
 import type { AppManifest } from '../../apps/types';
+import { AiTag } from '../../components/AiTag';
 import { Doodle, HandNote } from '../../components/Doodle';
 import { SectionLabel } from '../../components/SectionLabel';
 import { INDEX } from '../../copy/landing';
@@ -124,6 +125,7 @@ function Row({ app }: { app: AppManifest }) {
           >
             {app.name}
           </span>
+          {app.ai && <AiTag />}
         </span>
         <span className="mt-0.5 block text-sm text-mute">{app.tagline}</span>
       </span>

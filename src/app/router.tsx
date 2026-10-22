@@ -41,6 +41,12 @@ export const router = createBrowserRouter(
       lazy: async () => calm((await import('../pages/Legal')).Terms),
       HydrateFallback: RouteLoading,
     },
+    // Not linked anywhere. The database rules are the real lock (see src/lib/admin.ts).
+    {
+      path: '/admin',
+      lazy: async () => calm((await import('../pages/Admin')).default),
+      HydrateFallback: RouteLoading,
+    },
     // Published Lepak Pages: short links like /n/bio-chapter-3
     {
       path: '/n/:slug/*',

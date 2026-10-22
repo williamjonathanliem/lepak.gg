@@ -5,9 +5,9 @@ import { Hero } from './landing/Hero';
 import { IndexSection } from './landing/IndexSection';
 import { LiveDemo } from './landing/LiveDemo';
 import { OpenSource } from './landing/OpenSource';
-import { StudyKit } from './landing/StudyKit';
 import { Steps } from './landing/Steps';
 import { TopBar } from './landing/TopBar';
+import { Wall } from './landing/Wall';
 
 export default function Landing() {
   return (
@@ -19,7 +19,7 @@ export default function Landing() {
         <Marquee items={APPS.map((app) => app.name)} />
         <LiveDemo />
         <IndexSection />
-        <StudyKit />
+        <Wall />
         <Steps />
         <OpenSource />
       </main>

@@ -9,6 +9,7 @@ export const aiSlides: AppManifest = {
   accent: '#b9a2ff',
   status: 'beta',
   multiplayer: false,
+  ai: true,
   route: '/ai-slides',
   load: () => import('./index'),
 };

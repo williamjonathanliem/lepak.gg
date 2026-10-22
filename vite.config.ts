@@ -32,6 +32,7 @@ function devApi(): Plugin {
     // Loaded only when used, so Genkit doesn't slow down every dev start.
     '/api/ai-notes': async () => (await import('./api/_lib/aiNotes')).handleAiNotesRequest,
     '/api/ai-slides': async () => (await import('./api/_lib/aiSlides')).handleAiSlidesRequest,
+    '/api/wall': async () => (await import('./api/_lib/wallPost')).handleWallRequest,
   };
   return {
     name: 'lepak-dev-api',
@@ -54,10 +55,10 @@ function devApi(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  // Server-only secrets from .env.local (e.g. GEMINI_API_KEY) for the dev API routes.
-  // Only non-VITE_ names, so they never reach the browser.
+  // Everything in .env.local (e.g. GEMINI_API_KEY) for the dev API routes, like Vercel gives
+  // its functions. This is server-side only: the browser still gets just the VITE_ names.
   for (const [k, v] of Object.entries(loadEnv(mode, process.cwd(), ''))) {
-    if (!k.startsWith('VITE_') && process.env[k] === undefined) process.env[k] = v;
+    if (process.env[k] === undefined) process.env[k] = v;
   }
   return {
     plugins: [react(), tailwindcss(), devApi()],

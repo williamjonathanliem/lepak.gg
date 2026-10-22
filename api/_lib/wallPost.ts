@@ -8,11 +8,9 @@
 //      NOT posted (we never let unchecked notes through).
 //   4. saved with full rights (the database rules don't let browsers create notes)
 
-import { ServerValue } from 'firebase-admin/database';
 import { z } from 'genkit';
 import { filterText } from '../../src/lib/noteFilter.js';
 import { SAFETY_NOTE, generateWithFallback, guardAiRequest, isBusyError } from './ai.js';
-import { adminConfigured, adminDb, userFrom } from './firebaseAdmin.js';
 
 const NOTES_PER_MINUTE = 6; // per IP; the per-guest limit (1 a minute) is checked below
 const POST_GAP_MS = 60_000;
@@ -75,6 +73,16 @@ async function moderate(text: string, nick: string) {
 export async function handleWallRequest(request: Request): Promise<Response> {
   const refused = guardAiRequest(request, 'wall', NOTES_PER_MINUTE);
   if (refused) return refused;
+  // firebase-admin is big and needs Node 22+. Load it here, not at the top, so a problem
+  // with it shows up as a clear error in the logs instead of crashing the whole function.
+  let admin: typeof import('./firebaseAdmin.js');
+  try {
+    admin = await import('./firebaseAdmin.js');
+  } catch (e) {
+    console.error('wall: could not load firebase-admin:', e instanceof Error ? e.message : e);
+    return refuse('failed', 500);
+  }
+  const { adminConfigured, adminDb, serverTime, userFrom } = admin;
   if (!adminConfigured()) {
     return refuse('setup', 503);
   }
@@ -119,8 +127,8 @@ export async function handleWallRequest(request: Request): Promise<Response> {
 
   const id = db.ref('wall').push().key!;
   await db.ref().update({
-    [`wall/${id}`]: { ...note, uid, updatedAt: ServerValue.TIMESTAMP },
-    [`wallLast/${uid}`]: ServerValue.TIMESTAMP,
+    [`wall/${id}`]: { ...note, uid, updatedAt: serverTime },
+    [`wallLast/${uid}`]: serverTime,
   });
   return Response.json({ id }, { headers: { 'Cache-Control': 'no-store' } });
 }

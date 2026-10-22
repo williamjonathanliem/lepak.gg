@@ -1,11 +1,12 @@
 // Firebase with full rights, for server functions only (it skips the database rules).
+// firebase-admin needs Node 22+ (set in package.json "engines", which Vercel follows).
 // Env (server only, never VITE_):
 //   FIREBASE_SERVICE_ACCOUNT  the service account JSON, whole file on one line
 //   FIREBASE_DATABASE_URL     optional; falls back to VITE_FIREBASE_DATABASE_URL
 
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
-import { getDatabase } from 'firebase-admin/database';
+import { ServerValue, getDatabase } from 'firebase-admin/database';
 
 let app: App | null = null;
 
@@ -26,6 +27,9 @@ function getApp(): App {
 }
 
 export const adminDb = () => getDatabase(getApp());
+
+/** Filled in with the server's clock when written. */
+export const serverTime = ServerValue.TIMESTAMP;
 
 /** The signed-in Firebase user behind a request (guest or admin), or null. */
 export async function userFrom(request: Request): Promise<string | null> {

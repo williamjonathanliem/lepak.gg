@@ -5,8 +5,8 @@
 //   FIREBASE_DATABASE_URL     optional; falls back to VITE_FIREBASE_DATABASE_URL
 
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
-import { getAuth } from 'firebase-admin/auth';
 import { ServerValue, getDatabase } from 'firebase-admin/database';
+import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 let app: App | null = null;
 
@@ -31,12 +31,31 @@ export const adminDb = () => getDatabase(getApp());
 /** Filled in with the server's clock when written. */
 export const serverTime = ServerValue.TIMESTAMP;
 
-/** The signed-in Firebase user behind a request (guest or admin), or null. */
+// Google's public keys for Firebase sign-in tokens (jose caches them between requests).
+const GOOGLE_KEYS = createRemoteJWKSet(
+  new URL(
+    'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com',
+  ),
+);
+
+/**
+ * The signed-in Firebase user behind a request (guest or admin), or null.
+ * Checks the ID token ourselves with jose instead of firebase-admin/auth: that one loads a
+ * library that can't run on Vercel (it require()s an ES module).
+ */
 export async function userFrom(request: Request): Promise<string | null> {
   const token = /^Bearer (.+)$/.exec(request.headers.get('authorization') ?? '')?.[1];
   if (!token) return null;
   try {
-    return (await getAuth(getApp()).verifyIdToken(token)).uid;
+    const { project_id: projectId } = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT!) as {
+      project_id: string;
+    };
+    const { payload } = await jwtVerify(token, GOOGLE_KEYS, {
+      issuer: `https://securetoken.google.com/${projectId}`,
+      audience: projectId,
+      algorithms: ['RS256'],
+    });
+    return typeof payload.sub === 'string' && payload.sub ? payload.sub : null;
   } catch {
     return null;
   }

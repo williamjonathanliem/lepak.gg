@@ -235,3 +235,44 @@ export function watchBans(cb: (bans: { uid: string; at: number }[]) => void): ()
 // ---------- votes ----------
 
 export const resetVotes = (appId: string) => patch({ [`votes/${appId}`]: null });
+
+// ---------- Lepak Pages ----------
+
+/** A Lepak Page as the admin list shows it (no content, no secrets). */
+export interface PageRow {
+  slug: string;
+  kind: string;
+  title: string;
+  visibility: string;
+  reports: number;
+  created_at: string;
+  updated_at: string;
+  last_seen_at: string;
+}
+
+/** Calls the admin-only Pages endpoint with this account's sign-in token
+ * (api/_lib/pagesTakedown.ts checks the account is an admin). */
+async function pagesAdmin<T>(payload: object): Promise<T> {
+  const { auth } = await getFirebase();
+  const token = await auth.currentUser?.getIdToken();
+  if (!token) throw new Error('Sign in again.');
+  const res = await fetch('/api/pages-takedown', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(body.error ?? `Server answered ${res.status}`);
+  return body;
+}
+
+/** Every live page, most reported first, then newest. */
+export async function listPages(): Promise<PageRow[]> {
+  return (await pagesAdmin<{ pages: PageRow[] }>({ action: 'list' })).pages;
+}
+
+/** Takes a Lepak Page down for good: the page and all its files. Returns how many files
+ * went with it. */
+export async function takePageDown(page: string): Promise<{ slug: string; files: number }> {
+  return pagesAdmin<{ slug: string; files: number }>({ page });
+}

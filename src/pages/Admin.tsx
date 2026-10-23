@@ -15,9 +15,12 @@ import {
   resetVotes,
   setNoteKind,
   setPinned,
+  listPages,
+  takePageDown,
   unban,
   watchBans,
   type AdminSession,
+  type PageRow,
   type RoomKind,
   type RoomRow,
 } from '../lib/admin';
@@ -39,7 +42,7 @@ import {
 // lock though: the database rules only obey accounts listed at admins/{uid} (see
 // src/lib/admin.ts), so a stranger who finds this page can't do anything.
 
-const TABS = ['overview', 'wall', 'rooms', 'votes'] as const;
+const TABS = ['overview', 'wall', 'rooms', 'pages', 'votes'] as const;
 type Tab = (typeof TABS)[number];
 
 const BASE =
@@ -292,11 +295,8 @@ function Panel() {
       {tab === 'overview' && <Overview onOpen={setTab} />}
       {tab === 'wall' && <WallAdmin />}
       {tab === 'rooms' && <RoomsAdmin />}
+      {tab === 'pages' && <PagesAdmin />}
       {tab === 'votes' && <VotesAdmin />}
-      <p className="m-0 font-mono text-xs text-mute">
-        Lepak Pages takedowns aren’t here yet: they need the Supabase admin key set up on the
-        server.
-      </p>
     </>
   );
 }
@@ -700,6 +700,155 @@ function RoomList({ kind }: { kind: RoomKind }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Lepak Pages: every live page, and takedowns (copyright, abuse). */
+function PagesAdmin() {
+  const [pages, setPages] = useState<PageRow[] | null>(null);
+  const [filter, setFilter] = useState('');
+  const [page, setPage] = useState('');
+  const [done, setDone] = useState('');
+  const { busy, error, run } = useAction();
+
+  const load = () => run('list', async () => setPages(await listPages()));
+  useEffect(() => {
+    void load();
+    // load once when the tab opens; Refresh reloads
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function takeDown(target: string) {
+    setDone('');
+    void run(
+      `down:${target}`,
+      async () => {
+        const { slug, files } = await takePageDown(target);
+        setDone(`Removed /n/${slug} and ${files} file${files === 1 ? '' : 's'}.`);
+        setPage('');
+        setPages((list) => list?.filter((p) => p.slug !== slug) ?? list);
+      },
+      `Take down ${target} for good? The page and its files can't be brought back.`,
+    );
+  }
+
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (page.trim()) takeDown(page.trim());
+  }
+
+  const q = filter.trim().toLowerCase();
+  const shown = (pages ?? []).filter(
+    (p) => !q || p.slug.includes(q) || p.title.toLowerCase().includes(q),
+  );
+
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3">
+        <h1 className="m-0 text-2xl font-black uppercase">Take down a page</h1>
+        <p className="m-0 max-w-xl text-mute">
+          For takedown requests (copyright, abuse) sent to {SITE.contact}. Paste the page link or
+          its name, or use the button on a page below. The page and everything uploaded to it are
+          deleted for good.
+        </p>
+        <form onSubmit={onSubmit} className="flex max-w-xl flex-wrap items-end gap-3">
+          <label className="flex min-w-0 flex-1 flex-col gap-1 font-mono text-xs font-bold uppercase">
+            Page link
+            <input
+              value={page}
+              onChange={(e) => setPage(e.target.value)}
+              placeholder={`https://${SITE.domain}/n/...`}
+              autoComplete="off"
+              className="h-11 border-3 border-ink bg-paper px-3 font-mono text-sm normal-case"
+            />
+          </label>
+          <button type="submit" disabled={busy !== null || !page.trim()} className={DANGER}>
+            Take down
+          </button>
+        </form>
+        {error && <p className="m-0 font-mono text-sm font-bold">{error}</p>}
+        {done && (
+          <p role="status" className="m-0 font-mono text-sm font-bold">
+            ✓ {done}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <h2 className="m-0 text-xl font-black uppercase">
+            Live pages {pages && <span className="font-mono text-sm">({pages.length})</span>}
+          </h2>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 font-mono text-xs font-bold uppercase">
+              Find
+              <input
+                type="search"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="name or title"
+                className="h-11 border-3 border-ink bg-paper px-3 font-mono text-sm normal-case"
+              />
+            </label>
+            <button
+              type="button"
+              disabled={busy !== null}
+              onClick={() => void load()}
+              className={BTN}
+            >
+              {busy === 'list' ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+        </div>
+        <p className="m-0 font-mono text-xs text-mute">
+          Most reported first, then newest. Unlisted pages are only seen by people with the link.
+        </p>
+        {!pages ? (
+          <p className="m-0 font-mono text-sm text-mute">{busy === 'list' ? 'Loading...' : ''}</p>
+        ) : shown.length === 0 ? (
+          <p className="m-0 font-mono text-sm text-mute">
+            {pages.length ? 'Nothing matches.' : 'No pages yet.'}
+          </p>
+        ) : (
+          <ul className="m-0 flex list-none flex-col gap-2 p-0">
+            {shown.map((p) => (
+              <li
+                key={p.slug}
+                className={`flex flex-wrap items-center gap-x-4 gap-y-2 border-3 border-ink px-3 py-2 ${p.reports > 0 ? 'bg-soft' : ''}`}
+              >
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <a
+                    href={`/n/${p.slug}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="truncate font-bold"
+                  >
+                    {p.title || '(no title)'}
+                  </a>
+                  <span className="truncate font-mono text-xs text-mute">
+                    /n/{p.slug} · {p.kind} · {p.visibility} · made {ago(Date.parse(p.created_at))} ·
+                    last seen {ago(Date.parse(p.last_seen_at))}
+                  </span>
+                </div>
+                {p.reports > 0 && (
+                  <span className="border-3 border-ink bg-ink px-2 py-1 font-mono text-xs font-bold text-paper">
+                    {p.reports} report{p.reports === 1 ? '' : 's'}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  disabled={busy !== null}
+                  onClick={() => takeDown(p.slug)}
+                  className={DANGER}
+                >
+                  Take down
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }
 

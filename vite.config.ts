@@ -2,7 +2,9 @@
 import { defineConfig, loadEnv, type Connect, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { handleMetaRequest } from './api/_lib/fetchMeta';
+import { SITE } from './src/lib/site';
 
 type Handler = (request: Request) => Promise<Response>;
 
@@ -55,6 +57,36 @@ function devApi(): Plugin {
   };
 }
 
+/**
+ * Writes sitemap.xml at build time: the landing page, the hub, legal pages, and every app
+ * with a route (read from each app's manifest, so a new app is listed without anyone
+ * remembering). Planned apps have no route, so they're left out.
+ */
+function sitemap(): Plugin {
+  return {
+    name: 'lepak-sitemap',
+    apply: 'build',
+    generateBundle() {
+      const routes = readdirSync('src/apps', { withFileTypes: true })
+        .filter((d) => d.isDirectory() && existsSync(`src/apps/${d.name}/manifest.ts`))
+        .map((d) =>
+          /route:\s*'([^']+)'/.exec(readFileSync(`src/apps/${d.name}/manifest.ts`, 'utf8')),
+        )
+        .flatMap((m) => (m ? [m[1]!] : []))
+        .sort();
+      const paths = ['/', '/hub', ...routes, '/privacy', '/terms'];
+      const urls = paths
+        .map((p) => `  <url><loc>https://${SITE.domain}${p}</loc></url>`)
+        .join('\n');
+      this.emitFile({
+        type: 'asset',
+        fileName: 'sitemap.xml',
+        source: `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`,
+      });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   // Everything in .env.local (e.g. GEMINI_API_KEY) for the dev API routes, like Vercel gives
   // its functions. This is server-side only: the browser still gets just the VITE_ names.
@@ -62,7 +94,7 @@ export default defineConfig(({ mode }) => {
     if (process.env[k] === undefined) process.env[k] = v;
   }
   return {
-    plugins: [react(), tailwindcss(), devApi()],
+    plugins: [react(), tailwindcss(), devApi(), sitemap()],
     test: {
       globals: true,
       environment: 'jsdom',

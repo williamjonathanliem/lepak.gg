@@ -1,6 +1,6 @@
 # Contributing to Lepak.gg
 
-Thanks for wanting to help. Lepak.gg is run by a small student team, and we decide what goes into it. Small fixes are always welcome. Bigger changes start with a conversation, so nobody spends a weekend on something we can't merge.
+Thanks for wanting to help. Lepak.gg is made and run by one student, [William Jonathan](https://github.com/williamjonathanliem), who decides what goes into it. Small fixes are always welcome. Bigger changes start with a conversation, so nobody spends a weekend on something that can't be merged.
 
 ## The short version
 
@@ -9,7 +9,7 @@ Thanks for wanting to help. Lepak.gg is run by a small student team, and we deci
    is stored): open an issue first and **wait for a maintainer to label it `approved`**.
    Pull requests for unapproved work may be closed without review.
 3. The maintainers have the final say on what is merged, how it looks and what it's called.
-   We may ask for changes, rework your pull request, or decline it.
+   They may ask for changes, rework your pull request, or decline it.
 
 ## Quick start (about 5 minutes)
 
@@ -25,12 +25,12 @@ pnpm dev
 Open http://localhost:5173. To play KataBomb against yourself, open the same room link in a
 second tab.
 
-**Our keys and services stay with the team.** Contributors don't get access to the production
+**The keys and services stay with the owner.** Contributors don't get access to the production
 Firebase, Supabase, Vercel or Gemini accounts, or to any user data. If your approved change
-really needs a live service, make your own free test project for development and tell us in
-the issue; never point your copy at ours.
+really needs a live service, make your own free test project for development and say so in
+the issue; never point your copy at the live one.
 
-## How we work
+## How it works
 
 1. **Find or open an issue.** Check the
    [issues](https://github.com/williamjonathanliem/lepak.gg/issues). Comment on one you'd like
@@ -69,10 +69,10 @@ CI also runs a Lighthouse check (accessibility 95+, performance 90+) on every pu
 
 ## New apps
 
-New apps are a team decision. Propose one in an issue: what it does, who it's for, and why it
+New apps are the owner's decision. Propose one in an issue: what it does, who it's for, and why it
 belongs in Lepak.gg. If it's approved, a maintainer gives it a number and a name, and you build
 it in its own folder under `src/apps/`, added to `src/apps/registry.ts`. Ask in the issue if
-you're unsure how; we'll point you to an existing app to copy the shape from.
+you're unsure how; you'll be pointed to an existing app to copy the shape from.
 
 ## Ground rules
 
@@ -81,7 +81,7 @@ you're unsure how; we'll point you to an existing app to copy the shape from.
 - **Rules are pure functions.** Game and app logic lives in `logic/` as plain TypeScript
   (state in, state out) with Vitest tests. No React or network code inside.
 - **Check everything from the network.** Messages between players, server replies and AI
-  output are checked with Zod before we use them.
+  output are checked with Zod before they're used.
 - **Multiplayer is host-authoritative.** The host's browser runs the rules; other players only
   send what they want to do.
 - **TypeScript strict**, no `any`. Keep comments short and useful, like the code around them.
@@ -99,7 +99,7 @@ you're unsure how; we'll point you to an existing app to copy the shape from.
 - Plain, friendly and short. A little Malaysian flavour is welcome ("jom", "lepak", "makan").
 - **No em dashes** in anything users see.
 - **No made-up numbers.** No invented user counts, stats or testimonials.
-- **Our own names.** Apps get their own names. If an app is based on someone else's game, say
+- **Original names.** Apps get their own names. If an app is based on someone else's game, say
   so in the tagline ("Inspired by NYT's Wordle.") but never use their name as ours.
 
 ### Free, safe and private
@@ -109,7 +109,7 @@ you're unsure how; we'll point you to an existing app to copy the shape from.
   public config goes there.
 - **New data needs approval**, and then three updates in the same pull request: the database
   rules, the clean-up job (nothing lives forever), and the [Privacy page](src/pages/Legal.tsx)
-  plus the README's "What is stored" table.
+  plus the "What is stored" table in [DEVELOPMENT.md](DEVELOPMENT.md).
 - **No tracking.** No analytics, ads or tracking cookies.
 
 ### Licences

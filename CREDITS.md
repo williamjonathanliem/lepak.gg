@@ -56,3 +56,9 @@ Toolbox tool ideas come from [delphi.tools](https://delphi.tools) ([licence: 0BS
 AI Slides' outline-first flow (plan, check, then build) was inspired by [presentation-ai](https://github.com/allweonedev/presentation-ai) (MIT). Our code is written from scratch.
 
 When you add a library or data set, add a row here in the same pull request.
+
+## Art and sound
+
+| Source                                                                                                           | Used for                                          | Licence |
+| ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------- |
+| [Kenney](https://kenney.nl): Racing Pack, Space Shooter Remastered, Animal Pack, Sci-fi Sounds, Interface Sounds | Ketik Race cars, track, space ships, avatars, sfx | CC0 1.0 |

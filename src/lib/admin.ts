@@ -109,6 +109,13 @@ export const ROOM_KINDS: RoomKind[] = [
     people: (d) => count(d.players),
   },
   {
+    id: 'ketik',
+    label: 'Ketik Race',
+    path: 'ketik',
+    href: (c) => `/ketik/r/${c}`,
+    people: (d) => count(d.racers),
+  },
+  {
     id: 'sudokuRace',
     label: 'Sudoku Race',
     path: 'sudokuRace',

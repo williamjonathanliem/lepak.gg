@@ -26,7 +26,7 @@ Everything runs in the browser. Share a 4-letter code and your friends are in.
 | Bingo         | AI Slides     | Spin the Wheel   | Groupthink                   |
 | Trivia        | Notes → Game  | Coin Flip        | Word Weave                   |
 | Sudoku Race   | Notes → Pages | Watch Together   | Hive Mind                    |
-|               | Deadlines     | Free-Time Finder | Pocket Crossword             |
+| Ketik Race    | Deadlines     | Free-Time Finder | Pocket Crossword             |
 |               | Study Room    | Device Drop      | Edgewise                     |
 |               | Whiteboard    | Toolbox          | Mosaic, Domino Logic, Sudoku |
 |               | Cite          |                  |                              |

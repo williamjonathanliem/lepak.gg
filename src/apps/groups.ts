@@ -18,7 +18,7 @@ export const GROUPS: AppGroup[] = [
     id: 'together',
     title: 'Play together',
     blurb: 'Make a room, drop the code in the group chat.',
-    ids: ['katabomb', 'sudoku-race', 'bingo', 'geoguess'],
+    ids: ['katabomb', 'ketik-race', 'sudoku-race', 'bingo', 'geoguess'],
   },
   {
     id: 'daily',
@@ -86,6 +86,7 @@ export function groupedApps(apps: readonly AppManifest[] = APPS) {
 /** Apps you can join with a room code, and where the code goes. */
 export const JOINABLE: { id: string; name: string; path: (code: string) => string }[] = [
   { id: 'katabomb', name: 'KataBomb', path: (c) => `/katabomb/r/${c}` },
+  { id: 'ketik-race', name: 'Ketik Race', path: (c) => `/ketik/r/${c}` },
   { id: 'sudoku-race', name: 'Sudoku Race', path: (c) => `/sudoku-race/r/${c}` },
   { id: 'bingo', name: 'Bingo', path: (c) => `/bingo/r/${c}` },
   { id: 'watch', name: 'Watch Together', path: (c) => `/watch/r/${c}` },

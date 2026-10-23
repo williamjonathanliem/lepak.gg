@@ -1,0 +1,14 @@
+Art and sound for Ketik Race, picked from these packs by Kenney (www.kenney.nl):
+
+  race/     Racing Pack                 https://kenney.nl/assets/racing-pack
+  space/    Space Shooter Remastered    https://kenney.nl/assets/space-shooter-remastered
+  avatars/  Animal Pack                 https://kenney.nl/assets/animal-pack
+  sfx/      Sci-fi Sounds, Interface Sounds
+            https://kenney.nl/assets/sci-fi-sounds
+            https://kenney.nl/assets/interface-sounds
+
+License: Creative Commons CC0 1.0 (public domain)
+http://creativecommons.org/publicdomain/zero/1.0/
+
+Some images were resized and the sounds converted to mp3; nothing else was changed.
+Credit is not required by the license, but thank you, Kenney.

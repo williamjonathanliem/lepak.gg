@@ -35,14 +35,14 @@ Players never make an account. Each browser gets an invisible guest sign-in, and
 
 ## What is stored, and for how long
 
-| Data                                                                            | Where               | Kept                                          |
-| ------------------------------------------------------------------------------- | ------------------- | --------------------------------------------- |
-| Game rooms (incl. Sudoku Race), bingo, Watch Together / Device Drop rooms, chat | Firebase            | Deleted 1 day after the room was last used    |
-| Shared whiteboards (drawings, pictures)                                         | Firebase            | Deleted 14 days after the last change         |
-| Wall notes and votes                                                            | Firebase            | 30 days                                       |
-| Pages and uploaded files                                                        | Supabase            | Deleted after 30 days without a visit or edit |
-| Guest accounts (anonymous sign-in)                                              | Firebase + Supabase | Deleted after 30 days unused                  |
-| Nickname, guest id, stats, solo board, citations                                | Your browser        | Cleared after 30 days unused                  |
+| Data                                                                                        | Where               | Kept                                          |
+| ------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------- |
+| Game rooms (incl. Sudoku Race, Ketik Race), bingo, Watch Together / Device Drop rooms, chat | Firebase            | Deleted 1 day after the room was last used    |
+| Shared whiteboards (drawings, pictures)                                                     | Firebase            | Deleted 14 days after the last change         |
+| Wall notes and votes                                                                        | Firebase            | 30 days                                       |
+| Pages and uploaded files                                                                    | Supabase            | Deleted after 30 days without a visit or edit |
+| Guest accounts (anonymous sign-in)                                                          | Firebase + Supabase | Deleted after 30 days unused                  |
+| Nickname, guest id, stats, solo board, citations                                            | Your browser        | Cleared after 30 days unused                  |
 
 A nightly [clean-up job](.github/workflows/cleanup.yml) does the deleting. The same numbers are on the [Privacy page](src/pages/Legal.tsx); they change together.
 

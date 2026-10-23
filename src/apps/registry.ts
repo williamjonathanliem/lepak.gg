@@ -28,6 +28,7 @@ import { aiSlides } from './ai-slides/manifest';
 import { coinFlip } from './coin-flip/manifest';
 import { spinWheel } from './spin-wheel/manifest';
 import { sudokuRace } from './sudoku-race/manifest';
+import { ketikRace } from './ketik-race/manifest';
 
 // Adding an app: create src/apps/<id>/manifest.ts, then add it to this list.
 export const APPS: readonly AppManifest[] = [
@@ -60,6 +61,7 @@ export const APPS: readonly AppManifest[] = [
   coinFlip,
   spinWheel,
   sudokuRace,
+  ketikRace,
 ];
 
 export const ROUTED_APPS: readonly RoutedAppManifest[] = APPS.filter(isRouted);

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { Button } from '../../components/Button';
 import { Input, InputError } from '../../components/Input';
@@ -10,6 +10,9 @@ import { Typewriter } from '../../components/Typewriter';
 import { HERO, NICKNAME_ERRORS } from '../../copy/landing';
 import { getNickname, saveNickname } from '../../lib/identity';
 import { NICKNAME_ID, focusNickname } from './nickname';
+
+/** Width of the typewriter block for the longest word, in ems of the heading's font. */
+const FIT_EMS = Math.max(...HERO.typedWords.map((w) => w.length)) * 0.6 + 0.9;
 
 export function Hero() {
   const navigate = useNavigate();
@@ -45,7 +48,11 @@ export function Hero() {
 
       <h1
         aria-label={HERO.ariaLabel}
-        className="m-0 min-h-[2.05em] font-mono text-[clamp(44px,9vw,148px)] leading-none font-bold tracking-[-0.04em]"
+        // Never bigger than fits the longest typed word on one line (about 0.6em per
+        // character plus the block's padding and cursor), so the block never wraps and
+        // the page below doesn't jump on phones.
+        style={{ '--fit': `${FIT_EMS}` } as CSSProperties}
+        className="m-0 min-h-[2.05em] font-mono text-[length:min(clamp(44px,9vw,148px),calc((100vw-2*var(--spacing-gutter))/var(--fit)))] leading-none font-bold tracking-[-0.04em]"
       >
         <span aria-hidden="true" className="block">
           {HERO.hello}

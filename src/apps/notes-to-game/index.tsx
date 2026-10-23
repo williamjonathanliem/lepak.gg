@@ -1,3 +1,4 @@
+import { AI_SIGNIN_NOTE } from '../../copy/ai';
 import { useEffect, useRef, useState } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router';
 import { AppHeader } from '../../components/AppHeader';
@@ -149,7 +150,7 @@ function Setup() {
       if (source.text !== undefined) source.text = source.text.slice(0, 60_000);
       const res = await fetch('/api/ai-notes', {
         method: 'POST',
-        headers: aiHeaders(),
+        headers: await aiHeaders(),
         body: JSON.stringify({
           ...source,
           fileName: file?.name,
@@ -221,6 +222,7 @@ function Setup() {
           Turn your slides, PDF or notes into a live quiz. AI writes the questions, they go on the
           big screen, everyone answers on their phone, fastest right answers win.
         </p>
+        <p className="mt-2 mb-0 max-w-xl font-mono text-xs text-mute">{AI_SIGNIN_NOTE}</p>
       </div>
 
       {picked ? (

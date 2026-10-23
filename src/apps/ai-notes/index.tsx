@@ -1,3 +1,4 @@
+import { AI_SIGNIN_NOTE } from '../../copy/ai';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { AppHeader } from '../../components/AppHeader';
@@ -139,7 +140,7 @@ function Maker({
       }
       const res = await fetch('/api/ai-notes', {
         method: 'POST',
-        headers: aiHeaders(),
+        headers: await aiHeaders(),
         body: JSON.stringify({ ...input, fileName: file?.name }),
       });
       if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {
@@ -239,7 +240,7 @@ function Maker({
       </p>
       <p className="m-0 font-mono text-xs text-mute">
         Your file is sent to Google's Gemini to write the notes, then forgotten. Don't upload
-        anything private.
+        anything private. {AI_SIGNIN_NOTE}
       </p>
 
       {drafts.length > 0 && (

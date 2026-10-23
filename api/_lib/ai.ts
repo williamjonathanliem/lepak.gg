@@ -7,7 +7,8 @@
 
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit } from 'genkit';
-import { allowRequest, fromOurSite } from './fetchMeta.js';
+import { fromOurSite, underLimit } from './fetchMeta.js';
+import { userFrom } from './idToken.js';
 
 // Override with GEMINI_MODEL when Google retires this one (the error message names the new one).
 export const MODEL = process.env.GEMINI_MODEL ?? 'gemini-3.8-flash';
@@ -84,34 +85,51 @@ const PLAYER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
 /** A whole campus can share one IP, so with a guest ID the IP gets a much bigger allowance. */
 const SHARED_IP_FACTOR = 10;
 
-/** Per guest when the page sends its guest ID (X-Lepak-Player), otherwise per IP. A made-up
- * ID only buys a spammer one guest's allowance, and the IP limit still caps them. */
-function allowed(request: Request, bucket: string, perMinute: number): boolean {
-  const now = Date.now();
+/** Per person (the signed-in account, else the guest ID the page sends in X-Lepak-Player),
+ * otherwise per IP. A made-up ID only buys a spammer one person's allowance, and the IP
+ * limit still caps them. */
+async function allowed(
+  request: Request,
+  bucket: string,
+  perMinute: number,
+  uid: string | null,
+): Promise<boolean> {
   const ip = clientIp(request);
-  const player = request.headers.get('x-lepak-player');
-  if (!player || !PLAYER_ID.test(player)) return allowRequest(`${bucket}:${ip}`, now, perMinute);
+  const header = request.headers.get('x-lepak-player');
+  const person = uid ?? (header && PLAYER_ID.test(header) ? header : null);
+  if (!person) return underLimit(ip, bucket, perMinute);
   return (
-    allowRequest(`${bucket}:p:${player}`, now, perMinute) &&
-    allowRequest(`${bucket}:ip:${ip}`, now, perMinute * SHARED_IP_FACTOR)
+    (await underLimit(person, `${bucket}-p`, perMinute)) &&
+    underLimit(ip, `${bucket}-ip`, perMinute * SHARED_IP_FACTOR)
   );
 }
 
 /**
  * The checks every AI request goes through. Returns an error response to send back, or null
  * when the request may go ahead. `bucket` keeps each feature's per-minute limit separate.
+ * With `signIn`, the request must carry the guest's Firebase sign-in token: the "from our
+ * site" check only reads headers, which a script can fake, so this is what stops scripts
+ * from using our AI key. (The wall checks sign-in itself, with its own error codes.)
  */
-export function guardAiRequest(
+export async function guardAiRequest(
   request: Request,
   bucket: string,
   perMinute: number,
-): Response | null {
+  { signIn = false }: { signIn?: boolean } = {},
+): Promise<Response | null> {
   if (request.method !== 'POST') return Response.json({ error: 'Use POST' }, { status: 405 });
   if (!process.env.GEMINI_API_KEY) {
     return Response.json({ error: 'AI is not set up on this server' }, { status: 503 });
   }
   if (!fromOurSite(request)) return Response.json({ error: 'Not allowed' }, { status: 403 });
-  if (!allowed(request, bucket, perMinute)) {
+  const uid = signIn ? await userFrom(request) : null;
+  if (signIn && !uid) {
+    return Response.json(
+      { error: "Couldn't check who you are. Refresh the page and try again." },
+      { status: 401 },
+    );
+  }
+  if (!(await allowed(request, bucket, perMinute, uid))) {
     return Response.json(
       { error: 'Too many in a row. Wait a minute.' },
       { status: 429, headers: { 'Retry-After': '60' } },

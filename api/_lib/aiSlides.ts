@@ -223,7 +223,7 @@ function slideFlows(): Flows {
 
 /** POST /api/ai-slides with { step: 'outline' | 'slides' | 'rewrite', ... }. */
 export async function handleAiSlidesRequest(request: Request): Promise<Response> {
-  const refused = guardAiRequest(request, 'slides', PER_MINUTE);
+  const refused = await guardAiRequest(request, 'slides', PER_MINUTE, { signIn: true });
   if (refused) return refused;
 
   const parsed = Input.safeParse(await request.json().catch(() => null));

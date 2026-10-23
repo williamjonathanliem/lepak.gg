@@ -21,8 +21,25 @@ export class MetaError extends Error {
   }
 }
 
-function isPrivateIp(ip: string): boolean {
-  const v4 = ip.startsWith('::ffff:') ? ip.slice(7) : ip;
+/** An IPv4 address hidden inside an IPv6 one, or null. URLs write `[::ffff:127.0.0.1]` as
+ * `::ffff:7f00:1`, so the hex form must be read too. Covers IPv4-mapped (::ffff:), NAT64
+ * (64:ff9b::) and 6to4 (2002:). */
+function embeddedV4(v6: string): string | null {
+  const hex = (a: string, b: string) => {
+    const n = (parseInt(a, 16) << 16) | parseInt(b, 16);
+    return [n >>> 24, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+  };
+  const dotted = /^(?:::ffff:|64:ff9b::)(\d+\.\d+\.\d+\.\d+)$/.exec(v6);
+  if (dotted) return dotted[1]!;
+  const tail = /^(?:::ffff:|64:ff9b::)([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(v6);
+  if (tail) return hex(tail[1]!, tail[2]!);
+  const sixToFour = /^2002:([0-9a-f]{1,4}):([0-9a-f]{1,4})(?::|$)/.exec(v6);
+  if (sixToFour) return hex(sixToFour[1]!, sixToFour[2]!);
+  return null;
+}
+
+export function isPrivateIp(ip: string): boolean {
+  const v4 = isIP(ip) === 6 ? (embeddedV4(ip.toLowerCase()) ?? ip) : ip;
   if (isIP(v4) === 4) {
     const [a, b] = v4.split('.').map(Number) as [number, number];
     return (
@@ -133,35 +150,49 @@ export function allowRequest(ip: string, now = Date.now(), limit = RATE_LIMIT): 
 }
 
 type Limiter = { limit(id: string): Promise<{ success: boolean }> };
-let shared: Promise<Limiter | null> | null = null;
+const shared = new Map<string, Promise<Limiter | null>>();
 
-/** The Upstash limiter, or null when it isn't configured. Created once per instance. */
-function sharedLimiter(): Promise<Limiter | null> {
-  shared ??= (async () => {
-    const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
-    if (!url || !token) return null;
-    const [{ Ratelimit }, { Redis }] = await Promise.all([
-      import('@upstash/ratelimit'),
-      import('@upstash/redis'),
-    ]);
-    return new Ratelimit({
-      redis: new Redis({ url, token }),
-      limiter: Ratelimit.slidingWindow(RATE_LIMIT, '1 m'),
-      prefix: 'lepak:meta',
-    });
-  })();
-  return shared;
+/** The Upstash limiter for one bucket, or null when it isn't configured. Once per instance. */
+function sharedLimiter(bucket: string, perMinute: number): Promise<Limiter | null> {
+  const key = `${bucket}:${perMinute}`;
+  let made = shared.get(key);
+  if (!made) {
+    made = (async () => {
+      const url = process.env.UPSTASH_REDIS_REST_URL ?? process.env.KV_REST_API_URL;
+      const token = process.env.UPSTASH_REDIS_REST_TOKEN ?? process.env.KV_REST_API_TOKEN;
+      if (!url || !token) return null;
+      const [{ Ratelimit }, { Redis }] = await Promise.all([
+        import('@upstash/ratelimit'),
+        import('@upstash/redis'),
+      ]);
+      return new Ratelimit({
+        redis: new Redis({ url, token }),
+        limiter: Ratelimit.slidingWindow(perMinute, '1 m'),
+        prefix: `lepak:${bucket}`,
+      });
+    })();
+    shared.set(key, made);
+  }
+  return made;
 }
 
-/** Shared limit when Upstash is set up, otherwise this instance's own count. */
-async function underLimit(ip: string): Promise<boolean> {
-  const limiter = await sharedLimiter();
-  if (!limiter) return allowRequest(ip);
+/**
+ * Shared limit when Upstash is set up, otherwise this instance's own count. `bucket` keeps
+ * each feature's count separate (the AI routes use this too, see ai.ts).
+ */
+export async function underLimit(
+  id: string,
+  bucket = 'meta',
+  perMinute = RATE_LIMIT,
+): Promise<boolean> {
+  const local = () =>
+    allowRequest(bucket === 'meta' ? id : `${bucket}:${id}`, Date.now(), perMinute);
+  const limiter = await sharedLimiter(bucket, perMinute);
+  if (!limiter) return local();
   try {
-    return (await limiter.limit(ip)).success;
+    return (await limiter.limit(id)).success;
   } catch {
-    return allowRequest(ip); // Redis down: fall back rather than block everyone
+    return local(); // Redis down: fall back rather than block everyone
   }
 }
 

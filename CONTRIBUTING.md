@@ -1,12 +1,20 @@
 # Contributing to Lepak.gg
 
-Thanks for helping! Lepak.gg is a student project, so questions are welcome and no fix is too
-small. Typos, a clearer button label, a new test: all good.
+Thanks for wanting to help. Lepak.gg is run by a small student team, and we decide what goes into it. Small fixes are always welcome. Bigger changes start with a conversation, so nobody spends a weekend on something we can't merge.
+
+## The short version
+
+1. **Small fix** (typo, broken link, clearer label, a missing test): just open a pull request.
+2. **Anything bigger** (a feature, a new app, a redesign, a new library, a change to how data
+   is stored): open an issue first and **wait for a maintainer to label it `approved`**.
+   Pull requests for unapproved work may be closed without review.
+3. The maintainers have the final say on what is merged, how it looks and what it's called.
+   We may ask for changes, rework your pull request, or decline it.
 
 ## Quick start (about 5 minutes)
 
-You don't need any accounts or keys to start. Without them, the site runs in **"this device
-only" mode**: multiplayer games work between tabs on your own computer.
+You don't need any accounts or keys. Without them, the site runs in **"this device only"
+mode**: multiplayer works between tabs on your own computer, and the AI tools are off.
 
 ```bash
 corepack enable
@@ -17,19 +25,21 @@ pnpm dev
 Open http://localhost:5173. To play KataBomb against yourself, open the same room link in a
 second tab.
 
-Want the real services (Firebase, Supabase, Gemini)? Copy `.env.example` to `.env.local` and
-fill it in. See [README: Run it locally](README.md#run-it-locally) and
-[Services](README.md#services).
+**Our keys and services stay with the team.** Contributors don't get access to the production
+Firebase, Supabase, Vercel or Gemini accounts, or to any user data. If your approved change
+really needs a live service, make your own free test project for development and tell us in
+the issue; never point your copy at ours.
 
 ## How we work
 
-1. **Pick something.** Check the [issues](https://github.com/williamjonathanliem/lepak.gg/issues).
-   For anything bigger than a small fix, comment first so two people don't build the same thing.
+1. **Find or open an issue.** Check the
+   [issues](https://github.com/williamjonathanliem/lepak.gg/issues). Comment on one you'd like
+   to take, and wait to be assigned so two people don't build the same thing.
 2. **Branch:** `git checkout -b feat/short-name` (or `fix/...`, `docs/...`).
 3. **Commit** with [Conventional Commits](https://www.conventionalcommits.org):
    `feat: add join-with-code box`, `fix: marquee jumps on Safari`, `docs: explain room codes`.
-4. **Open a pull request** and fill in what changed and how you tested it. CI runs everything
-   below automatically.
+4. **Open a pull request** that links the issue, says what changed and how you tested it. Keep
+   it to one thing. CI runs every check below.
 
 ## Checks (run these before opening a pull request)
 
@@ -45,30 +55,24 @@ CI also runs a Lighthouse check (accessibility 95+, performance 90+) on every pu
 
 ## Where things live
 
-| Folder                 | What's in it                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------ |
-| `src/apps/<app>/`      | One folder per app: `manifest.ts`, `index.tsx`, and usually `logic/`, `net/`, `ui/`  |
-| `src/apps/registry.ts` | The list of all apps. The hub, menu and routes are built from it                     |
-| `src/components/`      | Shared pieces: `AppHeader` (top bar + menu), `Button`, `Input`, `Marquee`...         |
-| `src/lib/`             | Shared helpers: identity, room codes, Firebase, storage, direct connections (`rtc/`) |
-| `src/pages/`           | Landing page, hub, Privacy and Terms                                                 |
-| `src/copy/`            | Text for the landing page and hub                                                    |
-| `api/`                 | Server functions on Vercel (Cite link lookup, AI Notes)                              |
-| `database.rules.json`  | Firebase security rules: who may read and write what                                 |
-| `supabase/`            | SQL for Lepak Pages (run in the Supabase SQL editor)                                 |
-| `scripts/cleanup/`     | The nightly job that deletes old data                                                |
-| `e2e/`                 | Playwright browser tests                                                             |
+| Folder                 | What's in it                                                                        |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `src/apps/<app>/`      | One folder per app: `manifest.ts`, `index.tsx`, and usually `logic/`, `net/`, `ui/` |
+| `src/apps/registry.ts` | The list of all apps. The hub, menu and routes are built from it                    |
+| `src/components/`      | Shared pieces: `AppHeader` (top bar + menu), `Button`, `Input`, `Marquee`...        |
+| `src/lib/`             | Shared helpers: identity, room codes, Firebase, storage, direct connections         |
+| `src/pages/`           | Landing page, hub, admin, Privacy and Terms                                         |
+| `src/copy/`            | Text for the landing page and hub                                                   |
+| `api/`                 | Server functions on Vercel                                                          |
+| `database.rules.json`  | Firebase security rules: who may read and write what                                |
+| `e2e/`                 | Playwright browser tests                                                            |
 
-## Adding an app
+## New apps
 
-The short version (full guide: [README: Add an app](README.md#add-an-app)):
-
-1. Make `src/apps/<your-app>/manifest.ts`. Start with `status: 'planned'` so others can see
-   what you're working on.
-2. Add it to `src/apps/registry.ts`.
-3. When it's playable, give it a `route`, a lazy `load`, and `status: 'beta'`. Add its id to
-   `src/apps/registry.test.ts`.
-4. Use `<AppHeader app={{ name, to, accent }} />` for the top bar.
+New apps are a team decision. Propose one in an issue: what it does, who it's for, and why it
+belongs in Lepak.gg. If it's approved, a maintainer gives it a number and a name, and you build
+it in its own folder under `src/apps/`, added to `src/apps/registry.ts`. Ask in the issue if
+you're unsure how; we'll point you to an existing app to copy the shape from.
 
 ## Ground rules
 
@@ -84,9 +88,9 @@ The short version (full guide: [README: Add an app](README.md#add-an-app)):
 
 ### Design
 
+- **Follow the existing look.** Brutalist black and white, tokens from `src/styles/index.css`,
+  3px borders, square corners, hard shadows. Design changes need an approved issue.
 - **Mobile first.** Check every screen at 360px wide.
-- **Loud outside, calm inside.** The landing page and hub use the full brutalist look; inside
-  apps the router adds `.calm` (thinner borders, normal-case buttons). Don't fight it.
 - **Accessible.** Real `<button>`, `<a>` and `<label>`, visible focus, 44px touch targets, text
   contrast of at least 4.5:1, and respect `prefers-reduced-motion`.
 
@@ -94,46 +98,50 @@ The short version (full guide: [README: Add an app](README.md#add-an-app)):
 
 - Plain, friendly and short. A little Malaysian flavour is welcome ("jom", "lepak", "makan").
 - **No em dashes** in anything users see.
-- **No made-up numbers.** No invented user counts, stats or testimonials. Write `[PLACEHOLDER]`
-  if something is unknown.
+- **No made-up numbers.** No invented user counts, stats or testimonials.
 - **Our own names.** Apps get their own names. If an app is based on someone else's game, say
   so in the tagline ("Inspired by NYT's Wordle.") but never use their name as ours.
 
 ### Free, safe and private
 
-- **Free only.** Anything that needs a card, a paid plan or a new account: open an issue and
-  ask the maintainers first.
-- **Secrets never go in the code.** Anything starting with `VITE_` ships to every browser, so only
-  public config goes there. Server keys (Gemini, service accounts) live in Vercel or GitHub
-  secrets.
-- **New data means three updates.** If your change stores something new:
-  1. the database rules (`database.rules.json` or `supabase/`),
-  2. the clean-up job (`scripts/cleanup/cleanup.mjs`): nothing lives forever,
-  3. the [Privacy page](src/pages/Legal.tsx) and the README's "What is stored" table.
-- **No tracking.** No analytics, ads or tracking cookies. `localStorage` is fine for things
-  like settings and drafts.
+- **Free only.** Nothing that needs a card, a paid plan or a new account.
+- **No secrets in the code.** Anything starting with `VITE_` ships to every browser, so only
+  public config goes there.
+- **New data needs approval**, and then three updates in the same pull request: the database
+  rules, the clean-up job (nothing lives forever), and the [Privacy page](src/pages/Legal.tsx)
+  plus the README's "What is stored" table.
+- **No tracking.** No analytics, ads or tracking cookies.
 
 ### Licences
 
-- New library or data set? Check its licence works in an AGPL-3.0 project. MIT, BSD, ISC,
-  Apache-2.0, LGPL, GPL-3.0 and AGPL-3.0 are fine; "non-commercial only", "no derivatives" and
-  GPL-2.0-only are not. Then add a row to [CREDITS.md](CREDITS.md) in the same pull request.
-- Ask before copying code from another project, even an open one; keep its licence notice.
+- New library or data set? Ask in the issue first. Its licence must work in an AGPL-3.0
+  project (MIT, BSD, ISC, Apache-2.0, LGPL, GPL-3.0, AGPL-3.0 are fine; "non-commercial only",
+  "no derivatives" and GPL-2.0-only are not). Add a row to [CREDITS.md](CREDITS.md).
+- Don't copy code from other projects without asking first.
+
+## The name and logo
+
+Contributing doesn't give you any rights to the **Lepak.gg name, wordmark or logo**. They
+aren't covered by the code licence (see the [README](README.md#licence-name-and-logo)). Please
+don't publish or host a copy under the Lepak.gg name, or present your work as an official
+Lepak.gg app or release.
 
 ## Reporting things
 
 - **Bugs:** open an issue with what you did, what you expected, what happened, and your
   browser and device. A screenshot helps a lot.
-- **Security problems:** please don't open a public issue. Email
-  [lepak.gg.my@gmail.com](mailto:lepak.gg.my@gmail.com) instead.
+- **Security problems:** don't open a public issue. Email
+  [lepak.gg.my@gmail.com](mailto:lepak.gg.my@gmail.com).
 - **Content to take down** (copyright, abuse): email the same address with the link.
 
 ## Be kind
 
 Be patient and friendly in issues and reviews; we're all learning. Review the code, not the
-person. Harassment of any kind isn't welcome here.
+person. Harassment of any kind isn't welcome, and maintainers may remove comments or block
+people who don't follow this.
 
-## Licence
+## Your contribution
 
-By contributing, you agree that your work is shared under the project's
-[AGPL-3.0 licence](LICENSE).
+By opening a pull request, you confirm that the work is your own (or you have the right to
+share it) and you agree it's licensed under the project's [AGPL-3.0 licence](LICENSE). Merged
+contributors are credited in the README.

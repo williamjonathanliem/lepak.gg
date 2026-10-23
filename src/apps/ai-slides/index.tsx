@@ -1,3 +1,4 @@
+import { AI_SIGNIN_NOTE } from '../../copy/ai';
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { AppHeader } from '../../components/AppHeader';
@@ -70,7 +71,7 @@ const LANGUAGES = ['auto', 'English', 'Bahasa Malaysia', 'Bahasa Indonesia', 'ä¸
 async function callAi(body: object): Promise<unknown> {
   const res = await fetch('/api/ai-slides', {
     method: 'POST',
-    headers: aiHeaders(),
+    headers: await aiHeaders(),
     body: JSON.stringify(body),
   });
   if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {
@@ -224,6 +225,7 @@ function Start({ handoff, options, setOptions, onOutline, onOpen }: StartProps) 
           Drop your lecture notes, a PDF or old slides, or just type a topic. Check the plan, then
           get a deck you can edit, present, download as PowerPoint or share.
         </p>
+        <p className="mt-2 mb-0 max-w-2xl font-mono text-xs text-mute">{AI_SIGNIN_NOTE}</p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-2">

@@ -1,3 +1,4 @@
+import { AI_SIGNIN_NOTE } from '../../copy/ai';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { AppHeader } from '../../components/AppHeader';
 import { SearchSelect } from '../../components/SearchSelect';
@@ -306,7 +307,7 @@ export default function MakanSplit() {
                 </p>
               )}
               <p className="m-0 w-full font-mono text-xs text-mute">
-                The photo goes to Google’s Gemini to be read, then is forgotten.
+                The photo goes to Google’s Gemini to be read, then is forgotten. {AI_SIGNIN_NOTE}
               </p>
             </div>
             {bill.items.length > 0 && (

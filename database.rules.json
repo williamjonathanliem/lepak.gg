@@ -24,7 +24,40 @@
           "intents": {
             "$id": {
               ".write": "auth != null && ((!data.exists() && newData.child('from').val() === auth.uid) || (!newData.exists() && root.child('rooms/katabomb').child($code).child('state/hostId').val() === auth.uid))",
-              ".validate": "newData.hasChildren(['from', 'data', 'at']) && newData.child('at').val() === now"
+              ".validate": "newData.hasChildren(['from', 'data', 'at']) && newData.child('at').val() === now",
+              "from": {
+                ".validate": "newData.isString()"
+              },
+              "at": {
+                ".validate": true
+              },
+              "data": {
+                ".validate": "newData.hasChildren(['type'])",
+                "type": {
+                  ".validate": "newData.isString() && newData.val().matches(/^(join|ready|submit|leave|style)$/)"
+                },
+                "nickname": {
+                  ".validate": "newData.isString() && newData.val().length <= 32"
+                },
+                "ready": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "word": {
+                  ".validate": "newData.isString() && newData.val().length <= 40"
+                },
+                "color": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 7"
+                },
+                "emoji": {
+                  ".validate": "newData.isString() && newData.val().length <= 8"
+                },
+                "$other": {
+                  ".validate": false
+                }
+              },
+              "$other": {
+                ".validate": false
+              }
             }
           },
           "chat": {

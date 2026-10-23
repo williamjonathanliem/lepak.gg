@@ -71,7 +71,7 @@ async function moderate(text: string, nick: string) {
 
 /** POST /api/wall with { text, kind, color, nick } and the guest's Firebase ID token. */
 export async function handleWallRequest(request: Request): Promise<Response> {
-  const refused = guardAiRequest(request, 'wall', NOTES_PER_MINUTE);
+  const refused = await guardAiRequest(request, 'wall', NOTES_PER_MINUTE);
   if (refused) return refused;
   // firebase-admin is big and needs Node 22+. Load it here, not at the top, so a problem
   // with it shows up as a clear error in the logs instead of crashing the whole function.

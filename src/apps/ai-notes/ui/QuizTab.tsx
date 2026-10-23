@@ -317,7 +317,7 @@ function AddQuestions({ notes, draftId, onChange }: Props) {
       const source = (await loadSource(draftId)) ?? { text: notesAsSource(notes) };
       const res = await fetch('/api/ai-notes', {
         method: 'POST',
-        headers: aiHeaders(),
+        headers: await aiHeaders(),
         body: JSON.stringify({
           ...source,
           mode: 'quiz',

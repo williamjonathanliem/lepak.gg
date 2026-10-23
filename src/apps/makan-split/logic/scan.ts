@@ -38,7 +38,7 @@ export async function scanReceipt(file: File, currency: string): Promise<Scan> {
   }
   const res = await fetch('/api/receipt', {
     method: 'POST',
-    headers: aiHeaders(),
+    headers: await aiHeaders(),
     body: JSON.stringify({ ...photo, currency }),
   });
   if (res.status === 404 && res.headers.get('content-type')?.includes('text/html')) {

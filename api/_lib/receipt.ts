@@ -58,7 +58,7 @@ export function toBillParts(r: z.infer<typeof ReceiptSchema>, currency = 'MYR') 
 
 /** POST /api/receipt with { imageBase64, mimeType } -> { items, servicePct, sstPct, discount, total }. */
 export async function handleReceiptRequest(request: Request): Promise<Response> {
-  const refused = guardAiRequest(request, 'receipt', RECEIPTS_PER_MINUTE);
+  const refused = await guardAiRequest(request, 'receipt', RECEIPTS_PER_MINUTE, { signIn: true });
   if (refused) return refused;
   const parsed = InputSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: 'Bad photo' }, { status: 400 });

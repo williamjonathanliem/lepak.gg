@@ -198,7 +198,7 @@ async function moreQuestions(input: QuizInput) {
 /** POST /api/ai-notes with { text } or { pdfBase64, fileName } -> notes as JSON.
  * With { mode: 'quiz', count, difficulty, kinds, avoid, ...the same source } -> { questions }. */
 export async function handleAiNotesRequest(request: Request): Promise<Response> {
-  const refused = guardAiRequest(request, 'notes', NOTES_PER_MINUTE);
+  const refused = await guardAiRequest(request, 'notes', NOTES_PER_MINUTE, { signIn: true });
   if (refused) return refused;
 
   const body: unknown = await request.json().catch(() => null);

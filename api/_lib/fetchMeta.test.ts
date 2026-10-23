@@ -1,4 +1,29 @@
-import { allowRequest, fromOurSite } from './fetchMeta';
+import { allowRequest, fromOurSite, isPrivateIp } from './fetchMeta';
+
+describe('private address check', () => {
+  it('blocks private IPv4, including inside IPv6', () => {
+    for (const ip of [
+      '127.0.0.1',
+      '10.1.2.3',
+      '169.254.169.254',
+      '::ffff:127.0.0.1',
+      '::ffff:7f00:1', // how a URL writes [::ffff:127.0.0.1]
+      '::ffff:a9fe:a9fe', // 169.254.169.254
+      '64:ff9b::a00:1', // NAT64 of 10.0.0.1
+      '2002:c0a8:0101::1', // 6to4 of 192.168.1.1
+      '::1',
+      'fd00::1',
+    ]) {
+      expect(isPrivateIp(ip), ip).toBe(true);
+    }
+  });
+
+  it('lets public addresses through', () => {
+    for (const ip of ['8.8.8.8', '::ffff:808:808', '2606:4700::1111', '2002:808:808::1']) {
+      expect(isPrivateIp(ip), ip).toBe(false);
+    }
+  });
+});
 
 describe('/api/meta guards', () => {
   it('only answers our own pages', () => {

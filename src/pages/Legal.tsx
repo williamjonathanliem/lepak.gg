@@ -152,7 +152,9 @@ export function Privacy() {
           write the notes or slides. Notes for the wall are sent with your nickname so Gemini can
           check they're kind before they go up, and Makan Split sends a receipt photo you choose so
           Gemini can read the items. We don't keep what's sent for checking. Google may use what's
-          sent through its free tier to improve its products, so don't upload anything private.
+          sent through its free tier to improve its products, so don't upload anything private. For
+          security, AI requests only work with the invisible guest sign-in (no account): it lets us
+          stop bots, and limit how often each guest can use the AI.
         </li>
         <li>
           <b>Sentry:</b> if a page crashes, it gets the error, the page address (without anything

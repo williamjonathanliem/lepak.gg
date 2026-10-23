@@ -71,7 +71,7 @@ Put Lepak.gg on the projector and students join on their phones with a 4-letter 
 
 ## About
 
-Lepak.gg is made and run by [William Jonathan](https://github.com/williamjonathanliem), a student in Kuala Lumpur. Ideas and bug reports are welcome: stick a note on the Wall on the site, or [open an issue](https://github.com/williamjonathanliem/lepak.gg/issues).
+Lepak.gg is made and run by [William Jonathan](https://github.com/williamjonathanliem). Ideas and bug reports are welcome: stick a note on the Wall on the site, or [open an issue](https://github.com/williamjonathanliem/lepak.gg/issues).
 
 - **Website:** [williamjonathan.me](https://williamjonathan.me)
 - **LinkedIn:** [in/williamjonathanliem](https://www.linkedin.com/in/williamjonathanliem/)

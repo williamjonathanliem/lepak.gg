@@ -189,7 +189,7 @@ export const WALL = {
 
 export const SOURCE = {
   label: 'Source',
-  heading: ['Built by students.', 'Forkable by anyone.'],
+  heading: ['Built by learners.', 'Forkable by anyone.'],
   body: 'Every app is one folder. Got an idea? Build it and open a pull request. AGPL-3.0: fork it freely, just keep your copy open too.',
   github: 'View on GitHub ↗',
   note: 'fuelled by kopi ais',

@@ -3,7 +3,7 @@
 // the Privacy page (src/pages/Legal.tsx).
 //
 //   1 day    game rooms, bingo, Watch Together / Device Drop rooms (rtc), live note editing,
-//            study rooms, live quiz rooms
+//            study rooms, live quiz rooms, Sudoku Race rooms
 //   14 days  shared whiteboards (drawings + pictures), free-time polls
 //   30 days  after the last change and the last due date: deadline boards
 //
@@ -33,6 +33,7 @@ const RETENTION = {
   collab: 1 * DAY, // live note editing; the saved note lives in Supabase
   boards: 14 * DAY,
   study: 1 * DAY,
+  sudokuRace: 1 * DAY,
   quiz: 1 * DAY,
   free: 14 * DAY,
   wall: 30 * DAY, // landing page notes; updatedAt is when it was posted

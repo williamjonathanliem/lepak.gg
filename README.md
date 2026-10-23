@@ -25,7 +25,7 @@ Everything runs in the browser. Share a 4-letter code and your friends are in.
 | KataBomb      | AI Notes      | Makan Split      | Letterlock                   |
 | Bingo         | AI Slides     | Spin the Wheel   | Groupthink                   |
 | Trivia        | Notes → Game  | Coin Flip        | Word Weave                   |
-|               | Notes → Pages | Watch Together   | Hive Mind                    |
+| Sudoku Race   | Notes → Pages | Watch Together   | Hive Mind                    |
 |               | Deadlines     | Free-Time Finder | Pocket Crossword             |
 |               | Study Room    | Device Drop      | Edgewise                     |
 |               | Whiteboard    | Toolbox          | Mosaic, Domino Logic, Sudoku |

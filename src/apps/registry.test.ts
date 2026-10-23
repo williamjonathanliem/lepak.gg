@@ -45,6 +45,7 @@ describe('app registry', () => {
       'ai-slides',
       'coin-flip',
       'spin-wheel',
+      'sudoku-race',
     ]);
   });
 });

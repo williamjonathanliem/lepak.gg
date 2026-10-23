@@ -401,6 +401,78 @@
         }
       }
     },
+    "sudokuRace": {
+      ".indexOn": ["updatedAt"],
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$code": {
+        ".read": "auth != null",
+        ".validate": "$code.matches(/^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{4}$/)",
+        ".write": "auth != null && !newData.exists() && data.child('updatedAt').val() < now - 86400000",
+        "meta": {
+          ".write": "auth != null && (data.exists() ? data.child('host').val() === auth.uid : newData.child('host').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['host', 'level', 'rule', 'limitMin', 'hostPlays', 'phase', 'startAt', 'round']) && newData.child('host').val() === (data.exists() ? data.child('host').val() : auth.uid)",
+          "host": {
+            ".validate": "newData.isString()"
+          },
+          "level": {
+            ".validate": "newData.isString() && newData.val().matches(/^(easy|medium|hard)$/)"
+          },
+          "rule": {
+            ".validate": "newData.isString() && newData.val().matches(/^(penalty|strikes)$/)"
+          },
+          "limitMin": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 60"
+          },
+          "hostPlays": {
+            ".validate": "newData.isBoolean()"
+          },
+          "phase": {
+            ".validate": "newData.isString() && newData.val().matches(/^(lobby|race)$/)"
+          },
+          "startAt": {
+            ".validate": "newData.isNumber()"
+          },
+          "round": {
+            ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "racers": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.hasChildren(['n', 'round', 'filled', 'total', 'mistakes', 'finishedAt'])",
+            "n": {
+              ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 16"
+            },
+            "round": {
+              ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 10000"
+            },
+            "filled": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 81"
+            },
+            "total": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 81"
+            },
+            "mistakes": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000"
+            },
+            "finishedAt": {
+              ".validate": "newData.isNumber()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "updatedAt": {
+          ".write": "auth != null",
+          ".validate": "newData.val() === now"
+        }
+      }
+    },
     "quiz": {
       ".indexOn": ["updatedAt"],
       ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",

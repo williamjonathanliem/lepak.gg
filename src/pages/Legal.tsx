@@ -61,7 +61,9 @@ export function Privacy() {
           </thead>
           <tbody>
             <tr>
-              <td>Game rooms (KataBomb, Bingo): nicknames, chat, words played, scores</td>
+              <td>
+                Game rooms (KataBomb, Bingo, Sudoku Race): nicknames, chat, words played, scores
+              </td>
               <td>To run the game</td>
               <td>1 day after the room was last used</td>
             </tr>

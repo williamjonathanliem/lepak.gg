@@ -109,6 +109,13 @@ export const ROOM_KINDS: RoomKind[] = [
     people: (d) => count(d.players),
   },
   {
+    id: 'sudokuRace',
+    label: 'Sudoku Race',
+    path: 'sudokuRace',
+    href: (c) => `/sudoku-race/r/${c}`,
+    people: (d) => count(d.racers),
+  },
+  {
     id: 'study',
     label: 'Study Room',
     path: 'study',
